@@ -1,132 +1,43 @@
 // Prompt copied to the user's clipboard by the "Copy Prompt" CTA in the hero.
 export const COPY_PROMPT = `fetch https://flueframework.com/start.md to create a new agent`;
 
-export const HERO = `const agent = createAgent(() => ({ model: 'anthropic/claude-sonnet-4-6' }));
+export const HERO = `import { createAgent, http, type FlueContext } from '@flue/runtime';
+import triage from '../skills/triage/SKILL.md' with { type: 'skill' };
+import { lookupIssue } from '../tools/github';
+import * as v from 'valibot';
 
-export async function run({ init, payload, env }) {
+export const channels = [http()];
+
+const agent = createAgent(() => ({
+  model: 'anthropic/claude-sonnet-4-6',
+  instructions: 'Investigate issues, make safe fixes, and clearly report your work.',
+  skills: [triage],
+  tools: [lookupIssue],
+}));
+
+export async function run({ init, payload, env }: FlueContext) {
   // Initialize a created agent using Flue's built-in virtual sandbox.
   const harness = await init(agent);
   const session = await harness.session();
 
-  // Call skills as reusable workflows with structured output:
-  const { data } = await session.skill('triage', {
-    args: { issueNumber: payload.issueNumber },
-    result: v.object({ fixApplied: v.boolean(), summary: v.string() }),
+  // Let the agent use its skills and tools, then return structured output:
+  const { data } = await session.prompt(\`Triage this issue: #\${payload.issueNumber}\`, {
+    result: v.object({
+      fixApplied: v.boolean(),
+      summary: v.string(),
+      comment: v.string(),
+    }),
   });
-
-  // Keep track of work in the session, just like Claude Code or Codex:
-  const comment = await session.prompt('Write a GitHub comment summarizing the triage.');
 
   // Keep absolute control over the agent's most critical decisions:
   if (data.fixApplied) {
     await session.shell(\`git add -A && git commit -m \${JSON.stringify(\`fix: \${data.summary}\`)}\`);
   }
 
-  // Protect your sensitive tokens and API keys with fine-grained control:
-  await session.fs.writeFile('/tmp/comment.md', comment.text);
-  await session.shell(\`gh issue comment \${Number(payload.issueNumber)} --body-file /tmp/comment.md\`, { 
+  // Protect sensitive tokens and API keys with fine-grained control:
+  await session.fs.writeFile('/tmp/comment.md', data.comment);
+  await session.shell(\`gh issue comment \${Number(payload.issueNumber)} --body-file /tmp/comment.md\`, {
     env: { GITHUB_TOKEN: env.GITHUB_TOKEN },
   });
 }`;
 
-export const SUPPORT_AGENT = `import { createAgent, http, type FlueContext } from '@flue/runtime';
-import {
-  getDefaultWorkspace,
-  getShellSandbox,
-  hydrateFromBucket,
-} from '@flue/runtime/cloudflare';
-
-// POST /workflows/support
-export const channels = [http()];
-
-// Built for: Cloudflare Workers, R2
-export async function run({ init, payload, env }: FlueContext) {
-  const workspace = getDefaultWorkspace();
-  if (!(await workspace.exists('/.hydrated'))) {
-    await hydrateFromBucket(workspace, env.KNOWLEDGE_BASE_BUCKET);
-    await workspace.writeFile('/.hydrated', new Date().toISOString());
-  }
-
-  const agent = createAgent(() => ({
-    sandbox: getShellSandbox({ workspace, loader: env.LOADER }),
-    model: 'openrouter/moonshotai/kimi-k2.6',
-  }));
-  const harness = await init(agent);
-  const session = await harness.session();
-  return await session.prompt(
-    \`Respond to this customer message: \${payload.message}\`,
-  );
-}`;
-
-export const ISSUE_TRIAGE = `import { createAgent, type FlueContext } from '@flue/runtime';
-import { Octokit } from '@octokit/core';
-import * as v from 'valibot';
-
-// Triggered in CI via \`flue run\` CLI — no HTTP endpoint needed.
-// Built for: Node, GitHub Actions
-const agent = createAgent(() => ({ model: 'anthropic/claude-opus-4-7' }));
-
-export async function run({ init, payload, env }: FlueContext) {
-  const { issueNumber } = payload;
-  const harness = await init(agent);
-  const session = await harness.session();
-  // Run the 'triage' skill to triage the GitHub issue.
-  const { data } = await session.skill('triage', {
-    args: { issueNumber },
-    result: v.object({
-      severity: v.picklist(['low', 'medium', 'high', 'critical']),
-      reproducible: v.boolean(),
-      summary: v.string(),
-    }),
-  });
-  // Post the triage result back to GitHub.
-  // The agent/sandbox never sees your sensitive GITHUB_TOKEN.
-  const body = \`**Severity:** \${data.severity}\\n**Reproducible:** \${data.reproducible}\\n\\n\${data.summary}\`;
-  await (new Octokit({ auth: env.GITHUB_TOKEN })).request(
-    'POST /repos/{owner}/{repo}/issues/{num}/comments', 
-    { owner: 'withastro', repo: 'flue', num: issueNumber, body },
-  );
-}`;
-
-export const CODING_AGENT = `import { createAgent, type FlueContext } from '@flue/runtime';
-import { Daytona } from '@daytona/sdk';
-import { daytona } from '../connectors/daytona';
-
-// Built for: Node, Daytona
-export async function run({ init, payload, env }: FlueContext) {
-  // Each agent gets a real container via Daytona.
-  const client = new Daytona({ apiKey: env.DAYTONA_API_KEY });
-  const sandbox = await client.create();
-  const agent = createAgent(() => ({ sandbox: daytona(sandbox), model: 'openai/gpt-5.5' }));
-  const harness = await init(agent);
-  const session = await harness.session();
-  // Setup the sandbox (for illustrative purposes only). 
-  // In production, you'd want to bake setup into the container image,
-  // or use a snapshot (if available from your sandbox provider).
-  await session.shell(\`git clone \${payload.repo} /workspace/project\`);
-  await session.shell('npm install', { cwd: '/workspace/project' });
-  return await session.prompt(payload.prompt);
-}`;
-
-export const DATA_AGENT = `import { createAgent, type FlueContext } from '@flue/runtime';
-import { Bash, InMemoryFs, MountableFs, ReadWriteFs } from 'just-bash';
-
-// Built for: Node
-export async function run({ init, payload }: FlueContext) {
-  // Mount the current directory at /workspace, so the agent can read,
-  // write, grep, and glob from your project files using bash.
-  const fs = new MountableFs({ base: new InMemoryFs() });
-  fs.mount('/workspace', new ReadWriteFs({ root: process.cwd() }));
-
-  // Create a custom virtual sandbox with 'just-bash'. Enable Python use
-  // so the agent can write code to analyze data, generate reports, etc.
-  const agent = createAgent(() => ({
-    sandbox: () => new Bash({ fs, cwd: '/workspace', python: true }),
-    model: 'anthropic/claude-sonnet-4-6',
-  }));
-  const harness = await init(agent);
-  const session = await harness.session();
-  return await session.prompt(
-    \`Answer this user question: \${payload.message}\`,
-  );
-}`;

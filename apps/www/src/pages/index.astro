@@ -1,35 +1,7 @@
 ---
 import "../styles/global.css";
 import { Code } from "astro:components";
-import { createHighlighter } from "shiki";
-import { HERO, SUPPORT_AGENT, ISSUE_TRIAGE, CODING_AGENT, DATA_AGENT, COPY_PROMPT } from "../code-snippets";
-
-const replaces: Record<string, string[]> = {
-  support: ['Intercom AI', 'Zendesk AI', 'Ada'],
-  triage: ['Dosu', 'Greptile', 'CodeRabbit'],
-  coding: ['Devin', 'Claude Code', 'Cursor Background Agents'],
-  data: ['Tableau AI', 'Power BI Copilot', 'ThoughtSpot Sage'],
-};
-
-
-const tabs = [
-  { id: 'triage', label: 'AI issue triage', badgeLabel: 'Issue Triage', code: ISSUE_TRIAGE, lines: ISSUE_TRIAGE.split('\n').filter(l => l.replace(/\/\/ .*/, '').trim()).length },
-  { id: 'data', label: 'data analyst', badgeLabel: 'Data Analyst', code: DATA_AGENT, lines: DATA_AGENT.split('\n').filter(l => l.replace(/\/\/ .*/, '').trim()).length },
-  { id: 'coding', label: 'coding agent', badgeLabel: 'Coding Agent', code: CODING_AGENT, lines: CODING_AGENT.split('\n').filter(l => l.replace(/\/\/ .*/, '').trim()).length },
-  { id: 'support', label: 'customer support agent', badgeLabel: 'Support Agent', code: SUPPORT_AGENT, lines: SUPPORT_AGENT.split('\n').filter(l => l.replace(/\/\/ .*/, '').trim()).length },
-];
-
-const highlighter = await createHighlighter({
-  themes: ['github-light'],
-  langs: ['typescript'],
-});
-
-const highlighted = tabs.map((tab) => ({
-  ...tab,
-  html: highlighter.codeToHtml(tab.code, { lang: 'typescript', theme: 'github-light' }),
-}));
-
-highlighter.dispose();
+import { HERO, COPY_PROMPT } from "../code-snippets";
 
 // Floating blueprint squares clustered near the hero headline. Coordinates
 // are in the background SVG's 400x500 viewBox; all squares are 40x40px
@@ -49,20 +21,20 @@ const floatingSquares = [
     <link rel="icon" href="/favicon.ico" />
     <meta name="generator" content={Astro.generator} />
     <title>Flue — The Agent Harness Framework</title>
-    <meta name="description" content="Agent = Model + Harness. Flue is the TypeScript framework for building modern agents — programmable, deployable anywhere, from chatbots to coding platforms." />
+    <meta name="description" content="Agent = Model + Harness. Build autonomous agents and powerful AI workflows with Flue's programmable TypeScript harness. Write once, deploy anywhere." />
     <meta name="theme-color" content="#ffffff" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Flue — The Agent Harness Framework" />
-    <meta property="og:description" content="Agent = Model + Harness. Flue is the TypeScript framework for building modern agents — programmable, deployable anywhere, from chatbots to coding platforms." />
+    <meta property="og:description" content="Agent = Model + Harness. Build autonomous agents and powerful AI workflows with Flue's programmable TypeScript harness. Write once, deploy anywhere." />
     <meta property="og:url" content="https://flueframework.com" />
     <meta property="og:image" content="https://flueframework.com/og2.jpg" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Flue — The Agent Harness Framework" />
-    <meta name="twitter:description" content="Agent = Model + Harness. Flue is the TypeScript framework for building modern agents — programmable, deployable anywhere, from chatbots to coding platforms." />
+    <meta name="twitter:description" content="Agent = Model + Harness. Build autonomous agents and powerful AI workflows with Flue's programmable TypeScript harness. Write once, deploy anywhere." />
     <meta name="twitter:image" content="https://flueframework.com/og2.jpg" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -168,7 +140,7 @@ const floatingSquares = [
           The Agent Harness Framework
         </h1>
         <p class="mt-6 max-w-2xl lg:max-w-4xl text-lg lg:text-2xl text-gray-600 text-balance">
-          Not another SDK. Build powerful, autonomous agents with Flue's programmable TypeScript harness. Write once, deploy anywhere.
+          Not another SDK. Build autonomous agents and powerful AI workflows with Flue's programmable TypeScript harness. Write once, deploy anywhere.
         </p>
         <div class="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:flex-wrap sm:items-center">
           <!-- Copy Prompt CTA.
@@ -224,7 +196,7 @@ const floatingSquares = [
 
             <div class="ml-auto flex items-stretch divide-x divide-gray-200 border-l border-gray-200">
               <!-- CLI run mode -->
-              <div class="hidden md:flex items-baseline gap-2 px-4 py-2.5" title="Run the agent locally — useful for CI">
+              <div class="hidden md:flex items-baseline gap-2 px-4 py-2.5" title="Run the workflow locally — useful for CI">
                 <svg class="w-3.5 h-3.5 text-gray-400 shrink-0 self-center" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <polyline points="4 17 10 11 4 5"/>
                   <line x1="12" y1="19" x2="20" y2="19"/>
@@ -232,7 +204,7 @@ const floatingSquares = [
                 <span class="font-[JetBrains_Mono,monospace] text-[13px] text-gray-600">flue run triage</span>
               </div>
               <!-- HTTP webhook run mode -->
-              <div class="hidden sm:flex items-baseline gap-2 px-4 py-2.5" title="Invoke the agent remotely via HTTP">
+              <div class="hidden sm:flex items-baseline gap-2 px-4 py-2.5" title="Invoke the workflow remotely via HTTP">
                 <svg class="w-3.5 h-3.5 text-gray-400 shrink-0 self-center" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <circle cx="12" cy="12" r="10"/>
                   <line x1="2" y1="12" x2="22" y2="12"/>
@@ -240,6 +212,7 @@ const floatingSquares = [
                 </svg>
                 <span class="font-[JetBrains_Mono,monospace] text-[13px] text-gray-600">POST /workflows/triage</span>
               </div>
+
             </div>
           </div>
           <Code code={HERO} lang="typescript" theme="github-light" />
@@ -259,13 +232,13 @@ const floatingSquares = [
               Agent = Model + Harness
             </h2>
             <p class="mt-6 text-lg text-gray-600 leading-relaxed">
-              It's <a href="https://www.langchain.com/blog/the-anatomy-of-an-agent-harness" target="_blank" rel="noopener noreferrer" class="text-gray-600 hover:underline transition-colors">the architecture</a> that makes coding agents like Claude Code and Codex so powerful. They can plan, gather context, write files, spawn subagents, adopt roles, and problem-solve. These agents are more than just chatbots. Why isnt every agent built like this?
+              It's <a href="https://www.langchain.com/blog/the-anatomy-of-an-agent-harness" target="_blank" rel="noopener noreferrer" class="text-gray-600 hover:underline transition-colors">the architecture</a> that makes coding agents like Claude Code and Codex so powerful. They can plan, gather context, write files, spawn subagents, delegate to specialists, and problem-solve. These agents are more than just chatbots. Why isn't every agent built like this?
             </p>
             <p class="mt-6 text-lg text-gray-600 leading-relaxed">
-              <strong>Flue is a framework for the next generation of agents.</strong> Flue's programmable agent harness is able to represent any autonomous agent or workflow, from simple chatbots to entire coding platforms. Connect your favorite remote sandbox, or use our built-in zero-config virtual sandbox to give your agent a place to work through any task.
+              <strong>Flue is a framework for the next generation of agents.</strong> Its programmable TypeScript harness gives any model sessions, tools, skills, filesystem access, and a secure place to work through real tasks.
             </p>
             <p class="mt-6 text-lg text-gray-600 leading-relaxed">
-              When you're ready to ship, Flue bundles your agents into an HTTP server that you can deploy anywhere. Or skip the server and run your agents right from the CLI, perfect for local tasks and CI.
+              Use the harness anywhere work needs to get done: inside automated workflows, behind interactive agents, or connected to the tools and environments your product already uses.
             </p>
           </div>
 
@@ -400,63 +373,128 @@ const floatingSquares = [
       </div>
     </section>
 
-    <!-- SECTION: Build Your Own — interactive tabs over real-world examples. -->
     <section>
       <div class="max-w-6xl mx-auto px-6 py-24">
-        <div class="grid lg:grid-cols-12 gap-12 lg:gap-16 items-start">
-          <div class="lg:col-span-5 lg:self-start">
-            {/* Reserve 3 lines of headline height on mobile so the layout
-                doesn't jump as tab labels ("AI issue triage" vs "AI data agent")
-                change the wrap count. Formula: 3 lines × 1.25 line-height ×
-                1.875rem (text-3xl font size). Unset on sm+ where the content
-                fits within 2 lines comfortably. */}
-            <div class="min-h-[calc(3*1.25*1.875rem)] sm:min-h-0 flex items-end">
-              <h2 class="font-heading text-3xl sm:text-4xl font-bold tracking-tight leading-[1.1]">
-                Build your own <span id="build-label" class="text-blue-700">{highlighted[0].label}</span> in <span id="build-lines">{highlighted[0].lines}</span> lines of TypeScript.
-              </h2>
-            </div>
-            <div class="mt-8">
-              <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Replaces</p>
-              <div id="build-replaces" class="mt-3 -ml-1 flex flex-wrap items-center gap-2">
-                {replaces[tabs[0].id].map((name) => (
-                  <span class="replaces-badge inline-flex items-center rounded-full bg-gray-200/70 px-3 py-1 text-xs font-medium text-gray-600 transition-all duration-300">{name}</span>
-                ))}
-              </div>
-            </div>
-            <p class="mt-6 text-lg text-gray-600 leading-relaxed">
-                Flue gives you the building blocks to build smarter agents with an intuitive, programmable interface. You own the entire stack: the agent, the harness, and the sandbox itself. Connect it all together and start building a more powerful, autonomous agent.
-             </p>
-             <p class="mt-4 text-lg text-gray-600 leading-relaxed">
-               Stop renting someone else's agent. Off-the-shelf AI tools are built for a general audience and struggle to fit to your product, your data, your customers, or your exact workflows.
-             </p>
-          </div>
+        <div class="max-w-2xl">
+          <h2 class="font-heading text-3xl sm:text-4xl font-bold tracking-tight leading-[1.1] text-balance">
+            Features
+          </h2>
+          <p class="mt-4 text-lg text-gray-600 leading-relaxed">
+            Build agents that can safely take action, maintain continuity, and connect to the systems where work already happens.
+          </p>
+        </div>
 
-          <div class="lg:col-span-7 min-w-0">
-            <div class="bg-white border border-gray-300 rounded-sm overflow-hidden">
-              <div class="flex gap-1 p-2 [&>button]:flex-1" id="build-badges" data-tabdata={JSON.stringify(Object.fromEntries(highlighted.map(t => [t.id, { label: t.label, lines: t.lines, replaces: replaces[t.id] }])))}>
-                {highlighted.map((tab, i) => (
-                  <button
-                    data-build={tab.id}
-                    class:list={[
-                      'build-badge px-3 py-2 text-sm font-medium transition-colors rounded-sm cursor-pointer',
-                      i === 0
-                        ? 'text-gray-950 bg-gray-200/70'
-                        : 'text-gray-500 hover:text-gray-700',
-                    ]}
-                  >
-                    {tab.badgeLabel}
-                  </button>
-                ))}
-              </div>
-              {highlighted.map((tab, i) => (
-                <div
-                  id={`build-code-${tab.id}`}
-                  class:list={['build-code-panel [&_pre]:p-6 [&_pre]:pt-2 [&_pre]:text-sm [&_pre]:leading-loose [&_pre]:overflow-x-auto [&_pre]:min-h-[360px] [&_pre]:m-0 [&_pre]:rounded-none', i !== 0 && 'hidden']}
-                  set:html={tab.html}
-                />
-              ))}
+        <div class="mt-10 grid lg:grid-cols-3 gap-5">
+          <a href="#" class="bg-white flex flex-col transition-colors hover:bg-gray-50 [&>div]:transition-colors hover:[&>div]:border-gray-400">
+            <div class="border border-cyan-700/50">
+              <svg class="block w-full" viewBox="0 0 320 148" fill="none" aria-hidden="true">
+                <defs>
+                  <pattern id="sandboxGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <path d="M20 0H0V20" stroke="#0891b2" stroke-opacity="0.5" stroke-width="0.8" stroke-dasharray="1 2"/>
+                  </pattern>
+                </defs>
+                <rect width="320" height="148" fill="#d5eff1"/>
+                <rect width="320" height="148" fill="url(#sandboxGrid)"/>
+                <path d="M160 49L183 62L160 75L137 62L160 49Z" fill="#d9f2f3" stroke="#0e7490" stroke-opacity="0.72"/>
+                <path d="M137 62V88L160 101V75L137 62Z" fill="#bde6e8" stroke="#0e7490" stroke-opacity="0.72"/>
+                <path d="M160 75L183 62V88L160 101V75Z" fill="#a9dfe2" stroke="#0e7490" stroke-opacity="0.72"/>
+              </svg>
             </div>
-          </div>
+            <div class="flex-1 border-x border-b border-gray-300 p-6">
+              <h3 class="font-heading text-xl font-semibold tracking-tight text-gray-950">Sandboxed Compute</h3>
+              <p class="mt-1.5 text-base text-gray-600 leading-relaxed">Give agents a filesystem and shell to investigate, modify, and verify real work safely.</p>
+            </div>
+          </a>
+
+          <a href="#" class="bg-white flex flex-col transition-colors hover:bg-gray-50 [&>div]:transition-colors hover:[&>div]:border-gray-400">
+            <div class="border border-cyan-700/50">
+              <svg class="block w-full" viewBox="0 0 320 148" fill="none" aria-hidden="true">
+                <defs>
+                  <pattern id="sessionGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <path d="M20 0H0V20" stroke="#0891b2" stroke-opacity="0.5" stroke-width="0.8" stroke-dasharray="1 2"/>
+                  </pattern>
+                </defs>
+                <rect width="320" height="148" fill="#d5eff1"/>
+                <rect width="320" height="148" fill="url(#sessionGrid)"/>
+                <path d="M135 55V87C135 93 146 98 160 98C174 98 185 93 185 87V55" fill="#bde6e8" stroke="#0e7490" stroke-opacity="0.72"/>
+                <ellipse cx="160" cy="55" rx="25" ry="8" fill="#d9f2f3" stroke="#0e7490" stroke-opacity="0.72"/>
+                <path d="M135 71C135 77 146 82 160 82C174 82 185 77 185 71" stroke="#0e7490" stroke-opacity="0.45"/>
+              </svg>
+            </div>
+            <div class="flex-1 border-x border-b border-gray-300 p-6">
+              <h3 class="font-heading text-xl font-semibold tracking-tight text-gray-950">Durable Execution</h3>
+              <p class="mt-1.5 text-base text-gray-600 leading-relaxed">Persist state and run history so agent work can continue reliably across requests and over time.</p>
+            </div>
+          </a>
+
+          <a href="#" class="bg-white flex flex-col transition-colors hover:bg-gray-50 [&>div]:transition-colors hover:[&>div]:border-gray-400">
+            <div class="border border-cyan-700/50">
+              <svg class="block w-full" viewBox="0 0 320 148" fill="none" aria-hidden="true">
+                <defs>
+                  <pattern id="subagentGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <path d="M20 0H0V20" stroke="#0891b2" stroke-opacity="0.5" stroke-width="0.8" stroke-dasharray="1 2"/>
+                  </pattern>
+                  <radialGradient id="agentSphere" cx="36%" cy="30%" r="72%">
+                    <stop offset="0" stop-color="#eefafa"/>
+                    <stop offset="1" stop-color="#b4e2e5"/>
+                  </radialGradient>
+                </defs>
+                <rect width="320" height="148" fill="#d5eff1"/>
+                <rect width="320" height="148" fill="url(#subagentGrid)"/>
+                <circle cx="160" cy="75" r="24" fill="url(#agentSphere)" stroke="#0e7490" stroke-opacity="0.72"/>
+              </svg>
+            </div>
+            <div class="flex-1 border-x border-b border-gray-300 p-6">
+              <h3 class="font-heading text-xl font-semibold tracking-tight text-gray-950">Subagents</h3>
+              <p class="mt-1.5 text-base text-gray-600 leading-relaxed">Delegate specialized work to agents with their own instructions, context, and tools.</p>
+            </div>
+          </a>
+
+          <a href="#" class="border border-gray-300 bg-white p-6 transition-colors hover:border-gray-400 hover:bg-gray-50">
+            <h3 class="font-heading text-xl font-semibold tracking-tight text-gray-950">Agents</h3>
+            <p class="mt-1.5 text-base text-gray-600 leading-relaxed">Deploy addressable agent instances that receive messages and maintain sessions over time.</p>
+          </a>
+
+          <a href="#" class="border border-gray-300 bg-white p-6 transition-colors hover:border-gray-400 hover:bg-gray-50">
+            <h3 class="font-heading text-xl font-semibold tracking-tight text-gray-950">Workflows</h3>
+            <p class="mt-1.5 text-base text-gray-600 leading-relaxed">Export finite, typed jobs for CI, scripts, HTTP endpoints, and automation.</p>
+          </a>
+
+          <a href="#" class="border border-gray-300 bg-white p-6 transition-colors hover:border-gray-400 hover:bg-gray-50">
+            <h3 class="font-heading text-xl font-semibold tracking-tight text-gray-950">Tools</h3>
+            <p class="mt-1.5 text-base text-gray-600 leading-relaxed">Define typed actions agents can call while your application owns credentials and effects.</p>
+          </a>
+
+          <a href="#" class="border border-gray-300 bg-white p-6 transition-colors hover:border-gray-400 hover:bg-gray-50">
+            <h3 class="font-heading text-xl font-semibold tracking-tight text-gray-950">Virtual Sandbox</h3>
+            <p class="mt-1.5 text-base text-gray-600 leading-relaxed">Start with a fast, in-memory workspace powered by just-bash—no VM or container configuration required.</p>
+          </a>
+
+          <a href="#" class="border border-gray-300 bg-white p-6 transition-colors hover:border-gray-400 hover:bg-gray-50">
+            <h3 class="font-heading text-xl font-semibold tracking-tight text-gray-950">Skills</h3>
+            <p class="mt-1.5 text-base text-gray-600 leading-relaxed">Package reusable instructions and resources that agents can apply to specialized tasks.</p>
+          </a>
+
+          <a href="#" class="border border-gray-300 bg-white p-6 transition-colors hover:border-gray-400 hover:bg-gray-50">
+            <h3 class="font-heading text-xl font-semibold tracking-tight text-gray-950">MCP Servers</h3>
+            <p class="mt-1.5 text-base text-gray-600 leading-relaxed">Connect agent sessions to external tools and services through Model Context Protocol.</p>
+          </a>
+
+          <a href="#" class="border border-gray-300 bg-white p-6 transition-colors hover:border-gray-400 hover:bg-gray-50">
+            <h3 class="font-heading text-xl font-semibold tracking-tight text-gray-950">WebSockets</h3>
+            <p class="mt-1.5 text-base text-gray-600 leading-relaxed">Expose streaming, bidirectional interfaces for live agent-powered experiences.</p>
+          </a>
+
+          <a href="#" class="border border-gray-300 bg-white p-6 transition-colors hover:border-gray-400 hover:bg-gray-50">
+            <h3 class="font-heading text-xl font-semibold tracking-tight text-gray-950">Channels</h3>
+            <p class="mt-1.5 text-base text-gray-600 leading-relaxed">Route inbound events from connected systems into the agent instances that handle them.</p>
+          </a>
+
+          <a href="https://github.com/withastro/flue#readme" target="_blank" rel="noopener noreferrer" class="group border border-gray-300 bg-gray-950 p-6 text-white transition-colors hover:bg-gray-800">
+            <h3 class="font-heading text-xl font-semibold tracking-tight">Explore the docs</h3>
+            <p class="mt-1.5 text-base text-gray-300 leading-relaxed">Learn how to build, run, and deploy agents with Flue.</p>
+            <span class="mt-5 inline-flex items-center gap-2 text-sm font-medium text-white">Read the docs <span class="transition-transform group-hover:translate-x-1">&rarr;</span></span>
+          </a>
         </div>
       </div>
     </section>
@@ -559,77 +597,6 @@ const floatingSquares = [
         }, { passive: true });
       }
 
-      // --- Build Your Own: tab switching + "replaces" badge animation --------
-      const buildLabel = document.getElementById('build-label');
-      const buildLinesEl = document.getElementById('build-lines');
-      const badges = document.querySelectorAll('.build-badge');
-      const panels = document.querySelectorAll('.build-code-panel');
-      const replacesContainer = document.getElementById('build-replaces');
-
-      const tabData: Record<string, { label: string; lines: number; replaces: string[] }> = JSON.parse(
-        document.getElementById('build-badges')!.dataset.tabdata!
-      );
-
-      // Stagger timings for the "replaces" badge swap animation.
-      const STAGGER_OUT_MS = 25;
-      const STAGGER_IN_MS = 50;
-      const FADE_OUT_MS = 100;
-
-      function animateReplaces(newItems: string[]) {
-        if (!replacesContainer) return;
-        const oldBadges = Array.from(replacesContainer.querySelectorAll('.replaces-badge'));
-
-        // Phase 1: stagger-fade existing badges out L→R.
-        oldBadges.forEach((badge, i) => {
-          const el = badge as HTMLElement;
-          el.style.transition = `all ${FADE_OUT_MS}ms ease-out`;
-          setTimeout(() => {
-            el.style.opacity = '0';
-            el.style.transform = 'translateY(4px)';
-          }, i * STAGGER_OUT_MS);
-        });
-
-        // Phase 2: once all have faded, swap DOM and stagger-fade new badges in.
-        const totalOutTime = oldBadges.length * STAGGER_OUT_MS + FADE_OUT_MS;
-        setTimeout(() => {
-          replacesContainer.innerHTML = '';
-          newItems.forEach((name, i) => {
-            const badge = document.createElement('span');
-            badge.className = 'replaces-badge inline-flex items-center rounded-full bg-gray-200/70 px-3 py-1 text-xs font-medium text-gray-600 transition-all duration-200';
-            badge.style.opacity = '0';
-            badge.style.transform = 'translateY(4px)';
-            badge.textContent = name;
-            replacesContainer.appendChild(badge);
-            setTimeout(() => {
-              badge.style.opacity = '1';
-              badge.style.transform = 'translateY(0)';
-            }, i * STAGGER_IN_MS + 20);
-          });
-        }, totalOutTime);
-      }
-
-      function setActiveBuild(key: string) {
-        const tab = tabData[key];
-        if (!tab || !buildLabel || !buildLinesEl) return;
-        buildLabel.textContent = tab.label;
-        buildLinesEl.textContent = String(tab.lines);
-        panels.forEach((p) => p.classList.toggle('hidden', !p.id.endsWith(key)));
-        // NOTE: these classNames must stay in sync with the initial classes
-        // applied in the Astro template above (<button class:list={...}>).
-        badges.forEach((b) => {
-          const el = b as HTMLElement;
-          const base = 'build-badge px-3 py-2 text-sm font-medium transition-colors rounded-sm cursor-pointer';
-          el.className = el.dataset.build === key
-            ? `${base} text-gray-950 bg-gray-200/70`
-            : `${base} text-gray-500 hover:text-gray-700`;
-        });
-        animateReplaces(tab.replaces);
-      }
-
-      badges.forEach((b) => {
-        b.addEventListener('click', () => setActiveBuild((b as HTMLElement).dataset.build!));
-      });
-
       // --- Copy Prompt CTA ---------------------------------------------------
       // Copies the onboarding prompt (stored verbatim in
       // <script id="copy-prompt-text" type="text/plain">) to the clipboard.
@@ -688,10 +655,6 @@ const floatingSquares = [
     </script>
 
     <style is:global>
-      .build-code-panel .shiki {
-        background-color: white !important;
-      }
-
       /* One-time entrance pulse for architecture cards. */
       @keyframes cardPulse {
         0%   { transform: translateY(0) scale(1); }
