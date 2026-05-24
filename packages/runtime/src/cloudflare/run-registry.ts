@@ -1,6 +1,5 @@
 /** `RunRegistry` client for the Cloudflare target. */
 import type {
-	InstancePointer,
 	ListInstancesOpts,
 	ListInstancesResponse,
 	ListRunsOpts,
@@ -121,14 +120,3 @@ class CloudflareRunRegistry implements RunRegistry {
 	}
 }
 
-export type {
-	InstancePointer,
-	ListInstancesOpts,
-	ListInstancesResponse,
-	ListRunsOpts,
-	ListRunsResponse,
-	RecordRunEndInput,
-	RecordRunStartInput,
-	RunPointer,
-	RunRegistry,
-};

@@ -1,7 +1,7 @@
 import * as v from 'valibot';
 import type { FlueEvent } from '../types.ts';
 
-export const RunStatusSchema = v.picklist(['active', 'completed', 'errored']);
+const RunStatusSchema = v.picklist(['active', 'completed', 'errored']);
 
 export const ErrorEnvelopeSchema = v.object({
 	error: v.object({
@@ -13,7 +13,7 @@ export const ErrorEnvelopeSchema = v.object({
 	}),
 });
 
-export const RunOwnerSchema = v.union([
+const RunOwnerSchema = v.union([
 	v.object({ kind: v.literal('agent'), agentName: v.string(), instanceId: v.string() }),
 	v.object({ kind: v.literal('workflow'), workflowName: v.string(), instanceId: v.string() }),
 ]);
@@ -35,7 +35,7 @@ export const RunRecordSchema = v.object({
 	error: v.optional(v.unknown()),
 });
 
-export const RunPointerSchema = v.object({
+const RunPointerSchema = v.object({
 	runId: v.string(),
 	owner: RunOwnerSchema,
 	agentName: v.optional(v.string()),
@@ -76,7 +76,7 @@ const PromptUsageSchema = v.object({
 	}),
 });
 
-export const FLUE_EVENT_TYPES = [
+const FLUE_EVENT_TYPES = [
 	'run_start',
 	'agent_start',
 	'agent_end',
@@ -106,7 +106,7 @@ export const FLUE_EVENT_TYPES = [
 	'run_end',
 ] as const;
 
-export const FlueEventSchema = v.union([
+const FlueEventSchema = v.union([
 	flueEvent({
 		type: v.literal('run_start'),
 		runId: v.string(),
@@ -275,7 +275,7 @@ export const WorkflowInvocationQuerySchema = v.object({
 });
 export const AgentRouteParamSchema = v.object({ name: v.string(), id: v.string() });
 
-export const AgentManifestEntrySchema = v.object({
+const AgentManifestEntrySchema = v.object({
 	name: v.string(),
 	channels: v.object({
 		http: v.optional(v.literal(true)),
@@ -284,7 +284,7 @@ export const AgentManifestEntrySchema = v.object({
 	created: v.boolean(),
 });
 
-export const InstanceSummarySchema = v.object({
+const InstanceSummarySchema = v.object({
 	agentName: v.string(),
 	instanceId: v.string(),
 });

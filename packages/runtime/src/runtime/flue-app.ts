@@ -599,7 +599,7 @@ const agentRouteHandler: MiddlewareHandler = async (c) => {
 	});
 };
 
-export function runByIdRouteHandler(action: HandleRunRouteOptions['action']): MiddlewareHandler {
+function runByIdRouteHandler(action: HandleRunRouteOptions['action']): MiddlewareHandler {
 	return async (c) => {
 		const rt = runtimeConfig;
 		if (!rt) {

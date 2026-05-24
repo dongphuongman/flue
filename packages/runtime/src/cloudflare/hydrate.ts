@@ -1,6 +1,6 @@
 import type { Workspace } from '@cloudflare/shell';
 
-export interface HydrateFromBucketOptions {
+interface HydrateFromBucketOptions {
 	/** Only copy keys under this prefix. The prefix is stripped from Workspace paths. */
 	prefix?: string;
 }

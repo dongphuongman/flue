@@ -14,7 +14,7 @@ interface FrontmatterResult {
 }
 
 /** Parse optional YAML frontmatter (--- delimited). Basic `key: value` only. */
-export function parseFrontmatterFile(content: string, defaultName: string): FrontmatterResult {
+function parseFrontmatterFile(content: string, defaultName: string): FrontmatterResult {
 	const frontmatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/);
 
 	if (!frontmatterMatch) {
@@ -41,7 +41,7 @@ export function parseFrontmatterFile(content: string, defaultName: string): Fron
 // ─── Context Discovery ──────────────────────────────────────────────────────
 
 /** Read AGENTS.md (and CLAUDE.md if present) from a directory. Returns concatenated contents. */
-export async function readAgentsMd(env: SessionEnv, basePath: string): Promise<string> {
+async function readAgentsMd(env: SessionEnv, basePath: string): Promise<string> {
 	const parts: string[] = [];
 
 	for (const filename of ['AGENTS.md', 'CLAUDE.md']) {
@@ -95,7 +95,7 @@ export async function resolveSkillFilePath(
  * the frontmatter here only to populate the system-prompt's "Available
  * Skills" registry (name + description).
  */
-export async function discoverLocalSkills(
+async function discoverLocalSkills(
 	env: SessionEnv,
 	basePath: string,
 ): Promise<Record<string, Skill>> {
@@ -130,7 +130,7 @@ export async function discoverLocalSkills(
 	return skills;
 }
 
-export function mergeSkillCatalog(
+function mergeSkillCatalog(
 	definitionSkills: readonly Skill[],
 	discoveredSkills: Record<string, Skill>,
 ): Record<string, Skill> {
@@ -157,7 +157,7 @@ export function mergeSkillCatalog(
  * gained tool-call shape (it can't ask questions or wait for input
  * regardless of what the user message says).
  */
-export const HEADLESS_PREAMBLE =
+const HEADLESS_PREAMBLE =
 	'You are running in headless mode with no human operator. Work autonomously — never ask questions, never wait for user input. Make your best judgment and proceed independently.';
 
 export function composeSystemPrompt(

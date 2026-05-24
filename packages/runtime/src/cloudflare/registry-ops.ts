@@ -17,12 +17,12 @@ import {
 } from '../runtime/run-registry.ts';
 import type { RunStatus } from '../runtime/run-store.ts';
 
-export const DEFAULT_MAX_COMPLETED_RUNS_PER_INSTANCE = 50;
+const DEFAULT_MAX_COMPLETED_RUNS_PER_INSTANCE = 50;
 
-export interface SqlResult {
+interface SqlResult {
 	toArray(): SqlRow[];
 }
-export type SqlRow = Record<string, unknown>;
+type SqlRow = Record<string, unknown>;
 export interface SqlStorage {
 	exec(query: string, ...bindings: unknown[]): SqlResult;
 }

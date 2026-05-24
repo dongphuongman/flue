@@ -102,7 +102,7 @@ function getLastAssistantUsageInfo(
 }
 
 /** chars/4 heuristic. Conservative (overestimates). */
-export function estimateTokens(message: AgentMessage): number {
+function estimateTokens(message: AgentMessage): number {
 	let chars = 0;
 	switch (message.role) {
 		case 'user': {
@@ -147,7 +147,7 @@ export function estimateTokens(message: AgentMessage): number {
 	return 0;
 }
 
-export function estimateContextTokens(messages: AgentMessage[]): {
+function estimateContextTokens(messages: AgentMessage[]): {
 	tokens: number;
 	usageTokens: number;
 	trailingTokens: number;

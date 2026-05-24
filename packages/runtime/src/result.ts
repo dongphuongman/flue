@@ -8,8 +8,8 @@ import type { SkillDefinition } from './types.ts';
  * Names of the framework-injected tools used to capture structured results.
  * Surfaced for diagnostics and logging; not part of the public API.
  */
-export const FINISH_TOOL_NAME = 'finish';
-export const GIVE_UP_TOOL_NAME = 'give_up';
+const FINISH_TOOL_NAME = 'finish';
+const GIVE_UP_TOOL_NAME = 'give_up';
 
 /** Footer appended to user prompts/skill bodies when a `result` schema is set. */
 function buildResultFooter(): string {
@@ -131,7 +131,7 @@ export function buildPromptText(text: string, schema?: v.GenericSchema): string 
  * Outcome of a result-schema prompt/skill call. `pending` means the LLM ended its
  * turn without calling either of the result tools.
  */
-export type ResultOutcome<T> =
+type ResultOutcome<T> =
 	| { type: 'pending' }
 	| { type: 'finished'; value: T }
 	| { type: 'gave_up'; reason: string };

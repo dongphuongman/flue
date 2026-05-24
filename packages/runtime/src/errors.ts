@@ -119,7 +119,7 @@ function formatList<T>(items: readonly T[], fallback = '(none)'): string {
 
 // ─── Base classes ───────────────────────────────────────────────────────────
 
-export interface FlueErrorOptions {
+interface FlueErrorOptions {
 	/**
 	 * Stable, machine-readable identifier (snake_case). Set once per subclass.
 	 * Callers don't pass this — the subclass constructor does.
@@ -174,7 +174,7 @@ export interface FlueErrorOptions {
  * application code — extend it via a subclass below. If a use case isn't
  * covered, add a new subclass here rather than throwing a raw `FlueError`.
  */
-export class FlueError extends Error {
+class FlueError extends Error {
 	readonly type: string;
 	readonly details: string;
 	readonly dev: string;
@@ -192,7 +192,7 @@ export class FlueError extends Error {
 	}
 }
 
-export interface FlueHttpErrorOptions extends FlueErrorOptions {
+interface FlueHttpErrorOptions extends FlueErrorOptions {
 	/** HTTP status code (4xx or 5xx). */
 	status: number;
 	/** Additional response headers (e.g. `Allow` for 405). */
@@ -204,7 +204,7 @@ export interface FlueHttpErrorOptions extends FlueErrorOptions {
  * Subclasses set these in the `super({...})` call so the call site doesn't
  * have to think about HTTP semantics.
  */
-export class FlueHttpError extends FlueError {
+class FlueHttpError extends FlueError {
 	readonly status: number;
 	readonly headers: Record<string, string> | undefined;
 
@@ -231,7 +231,7 @@ export class MethodNotAllowedError extends FlueHttpError {
 	}
 }
 
-export class UnsupportedMediaTypeError extends FlueHttpError {
+class UnsupportedMediaTypeError extends FlueHttpError {
 	constructor({ received }: { received: string | null }) {
 		const detailLines: string[] = [];
 		if (received) {
@@ -253,7 +253,7 @@ export class UnsupportedMediaTypeError extends FlueHttpError {
 	}
 }
 
-export class InvalidJsonError extends FlueHttpError {
+class InvalidJsonError extends FlueHttpError {
 	constructor({ parseError }: { parseError: string }) {
 		super({
 			type: 'invalid_json',
@@ -289,7 +289,7 @@ export class AgentNotFoundError extends FlueHttpError {
 	}
 }
 
-export class WorkflowNotFoundError extends FlueHttpError {
+class WorkflowNotFoundError extends FlueHttpError {
 	constructor({ name, available }: { name: string; available: readonly string[] }) {
 		super({
 			type: 'workflow_not_found',
@@ -303,7 +303,7 @@ export class WorkflowNotFoundError extends FlueHttpError {
 	}
 }
 
-export class WorkflowNotHttpError extends FlueHttpError {
+class WorkflowNotHttpError extends FlueHttpError {
 	constructor({ name }: { name: string }) {
 		super({
 			type: 'workflow_not_http',
@@ -441,7 +441,7 @@ export class ValidationError extends FlueHttpError {
  *   - `cause` is never included on the wire (it's logged server-side only).
  */
 
-export function isFlueError(value: unknown): value is FlueError {
+function isFlueError(value: unknown): value is FlueError {
 	return value instanceof FlueError;
 }
 

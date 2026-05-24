@@ -9,7 +9,7 @@ export function generateRunId(): string {
 	return `run_${ulid()}`;
 }
 
-export function generateRunNonce(): string {
+function generateRunNonce(): string {
 	return ulid();
 }
 

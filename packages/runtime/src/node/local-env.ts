@@ -25,7 +25,7 @@ const execAsync = promisify(execCb);
  * cloud-provider creds, and agent sockets MUST NOT appear. To expose
  * anything else, callers opt in explicitly via `options.env`.
  */
-export const DEFAULT_LOCAL_ENV_ALLOWLIST = [
+const DEFAULT_LOCAL_ENV_ALLOWLIST = [
 	'PATH',
 	'HOME',
 	'USER',

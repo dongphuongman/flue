@@ -27,7 +27,7 @@ export interface InMemoryRunRegistryOptions {
 	maxCompletedRunsPerInstance?: number;
 }
 
-export const DEFAULT_MAX_COMPLETED_RUNS_PER_INSTANCE = 50;
+const DEFAULT_MAX_COMPLETED_RUNS_PER_INSTANCE = 50;
 
 export class InMemoryRunRegistry implements RunRegistry {
 	private pointers = new Map<string, RunPointer>();

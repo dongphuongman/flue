@@ -216,13 +216,13 @@ export function getProviderConfiguration(
  * registration through the resolved Model to the Workers AI stream
  * function without going through AsyncLocalStorage.
  */
-export type ModelWithBinding<TApi extends Api> = Model<TApi> & {
+type ModelWithBinding<TApi extends Api> = Model<TApi> & {
 	binding: CloudflareAIBinding;
 	gateway?: CloudflareGatewayOptions | false;
 };
 
 /** Attach a Workers AI binding (and optional gateway options) to a Model literal. */
-export function attachModelBinding<TApi extends Api>(
+function attachModelBinding<TApi extends Api>(
 	model: Model<TApi>,
 	binding: CloudflareAIBinding,
 	gateway?: CloudflareGatewayOptions | false,
