@@ -63,12 +63,10 @@ export interface BuildContext {
 /**
  * Controls the build output format for a target platform.
  *
- * A plugin can either ship a fully-bundled JavaScript artifact (Node target)
- * or hand over a TypeScript/ESM entry source that some downstream tool will
- * bundle (Cloudflare target — wrangler does the bundling). Pre-bundling on
- * top of a tool that bundles for itself causes subtle resolution conflicts
- * (we hit this with `tar`/`fs`/etc. via `nodejs_compat`), so the Cloudflare
- * path explicitly opts out.
+ * A plugin can ship a JavaScript artifact bundled through the shared Vite
+ * graph, use the retained legacy esbuild strategy for a custom integration,
+ * or hand source entry generation to platform tooling. Node uses shared Vite
+ * output; Cloudflare migrates to the official Vite integration separately.
  */
 export interface BuildPlugin {
 	name: string;
@@ -80,21 +78,22 @@ export interface BuildPlugin {
 	generateEntryPoint(ctx: BuildContext): string | Promise<string>;
 	/**
 	 * Bundling strategy:
-	 *   - `'esbuild'` (default): run the CLI's esbuild pass to produce a
-	 *     bundled `dist/server.mjs`. Use when the deploy target is "just run
-	 *     this file" with no further bundling step.
-	 *   - `'none'`: skip esbuild. The entry is written as-is to `dist/` and
-	 *     becomes the input for whatever tool will deploy it (e.g. wrangler).
-	 *     The plugin must also implement `entryFilename` to set the file name.
+	 *   - `'vite'`: build a Node `server.mjs` artifact through Flue's shared
+	 *     Vite authored-module graph.
+	 *   - `'vite-cloudflare'`: write the Cloudflare source entry used by the
+	 *     official Cloudflare Vite integration.
+	 *   - `'esbuild'` (default): run the retained esbuild bundling strategy.
+	 *   - `'none'`: write a source entry for a downstream bundler; requires
+	 *     `entryFilename` to identify that target-specific entry input.
 	 */
 	bundle?: 'esbuild' | 'vite' | 'vite-cloudflare' | 'none';
 	/**
-	 * The filename to use for the entry, written under `dist/`. Required when
-	 * `bundle === 'none'`. For `bundle === 'esbuild'` the output is always
-	 * `server.mjs` and this field is ignored.
+	 * The filename to use for an emitted source entry under `dist/`. Required
+	 * when `bundle === 'none'` or `bundle === 'vite-cloudflare'`. Node bundled
+	 * output is always `server.mjs` and ignores this field.
 	 */
 	entryFilename?: string;
-	/** esbuild options. Only consulted when `bundle === 'esbuild'`. */
+	/** esbuild options; Node Vite builds also reuse `external` dependency entries. */
 	esbuildOptions?(ctx: BuildContext): Record<string, any>;
 	/**
 	 * Additional files to write to the output directory (`ctx.output`).

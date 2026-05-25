@@ -5,7 +5,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { build } from '../../cli/src/lib/build.ts';
-import { NodePlugin, ViteNodePlugin } from '../../cli/src/lib/build-plugin-node.ts';
+import { NodePlugin } from '../../cli/src/lib/build-plugin-node.ts';
 import type { BuildContext } from '../../cli/src/lib/types.ts';
 import type { WebSocketServerMessage } from '../src/types.ts';
 
@@ -16,6 +16,8 @@ describe('Node build plugin', () => {
 		expect(entry).toContain("import * as handler_triage_0 from '/tmp/triage.ts'");
 		expect(entry).toContain("import * as workflow_daily_report_0 from '/tmp/daily-report.ts'");
 		expect(entry).toContain("import * as channel_slack_0 from '/tmp/slack.ts'");
+		expect(entry).toContain("import { getPackagedSkills } from 'virtual:flue/packaged-skills';");
+		expect(entry).toContain('const packagedSkills = getPackagedSkills();');
 		expect(entry).toContain('const workflowHandlers = {};');
 		expect(entry).toContain('const websocketAgentHandlers = {};');
 		expect(entry).toContain('const websocketWorkflowHandlers = {};');
@@ -33,14 +35,14 @@ describe('Node build plugin', () => {
 		expect(dispatchQueueBody).not.toContain('runRegistry');
 	});
 
-	it('builds and starts a Vite Node server with existing workflow behavior', async () => {
+	it('builds and starts a Node server through the production Vite graph', async () => {
 		const root = createFixtureRoot('flue-vite-node-server-');
 		fs.mkdirSync(path.join(root, 'workflows'));
 		fs.writeFileSync(
 			path.join(root, 'workflows', 'smoke.ts'),
 			`import { http } from '@flue/runtime';\nexport const channels = [http()];\nexport async function run() { return { ok: true }; }\n`,
 		);
-		await build({ root, plugin: new ViteNodePlugin() });
+		await build({ root, target: 'node' });
 
 		const { child, port } = await startGeneratedServer(root);
 		try {
@@ -52,7 +54,7 @@ describe('Node build plugin', () => {
 		}
 	}, 15000);
 
-	it('builds imported Agent Skills as references through the Vite Node graph', async () => {
+	it('builds imported Agent Skills as references through the production Node graph', async () => {
 		const root = createFixtureRoot('flue-vite-node-skill-');
 		fs.mkdirSync(path.join(root, 'workflows'));
 		fs.mkdirSync(path.join(root, 'skills', 'review', 'references'), { recursive: true });
@@ -66,7 +68,7 @@ describe('Node build plugin', () => {
 			path.join(root, 'workflows', 'inspect.ts'),
 			`import { http } from '@flue/runtime';\nimport review from '../skills/review/SKILL.md' with { type: 'skill' };\nexport const channels = [http()];\nexport async function run() { return { reference: review, hasBody: 'body' in review, hasFiles: 'files' in review }; }\n`,
 		);
-		await build({ root, plugin: new ViteNodePlugin() });
+		await build({ root, target: 'node' });
 
 		const { child, port } = await startGeneratedServer(root);
 		try {

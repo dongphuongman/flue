@@ -442,11 +442,8 @@ class NodeReloader implements DevReloader {
 	}
 
 	async reload(_buildChanged: boolean): Promise<void> {
-		// On Node we always restart the child. The bundled `server.mjs` is
-		// re-emitted by esbuild on every build (we don't dedupe there), so
-		// `buildChanged` is effectively always true. Even if it weren't, the
-		// child has the old code loaded in memory — to pick up new code it
-		// must restart.
+		// On Node we always restart the child after a successful rebuild because
+		// it has the previous server module graph loaded in memory.
 		await this.killChild();
 		await this.spawnAndWait();
 	}

@@ -3,7 +3,7 @@ import type { BuildContext, BuildPlugin } from './types.ts';
 
 export class NodePlugin implements BuildPlugin {
 	name = 'node';
-	bundle: BuildPlugin['bundle'] = 'esbuild';
+	bundle: BuildPlugin['bundle'] = 'vite';
 
 	generateEntryPoint(ctx: BuildContext): string {
 		const { agents, appEntry, channels, workflows } = ctx;
@@ -331,11 +331,6 @@ process.on('SIGTERM', () => { void stop(); });
 			external: ['node-liblzma', '@mongodb-js/zstd'],
 		};
 	}
-}
-
-export class ViteNodePlugin extends NodePlugin {
-	name = 'node-vite';
-	bundle: BuildPlugin['bundle'] = 'vite';
 }
 
 function agentVarName(name: string, index: number): string {
