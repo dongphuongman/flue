@@ -30,8 +30,7 @@ export const docsSections: DocsSection[] = [
 				title: 'Introduction',
 				items: [
 					{ title: 'Getting Started', slug: 'getting-started/quickstart' },
-					{ title: 'Agents', slug: 'concepts/agents' },
-					{ title: 'Workflows', slug: 'guide/workflows' },
+					{ title: 'What is an agent?', slug: 'concepts/agents' },
 					{ title: 'Why Flue?', slug: 'introduction/why-flue' },
 					{ title: 'Changelog', href: 'https://github.com/withastro/flue/blob/main/CHANGELOG.md' },
 				],
@@ -43,6 +42,7 @@ export const docsSections: DocsSection[] = [
 					{ title: 'Configuration', slug: 'guide/configuration' },
 					{ title: 'Models & Providers', slug: 'guide/models' },
 					{ title: 'Harness', slug: 'guide/harness' },
+					{ title: 'Workflows', slug: 'guide/workflows' },
 					{ title: 'Prompting', slug: 'guide/prompting' },
 					{ title: 'Skills', slug: 'guide/skills' },
 					{ title: 'Tools', slug: 'guide/tools' },
