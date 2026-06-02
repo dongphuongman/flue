@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Fixes & Other Changes
+
+- **Fixed relative cwd double-scoping in custom sandbox connectors.** Flue now applies a created agent's `cwd` exactly once during `init()`, relative to the connector's provider-owned base directory. `SandboxFactory.createSessionEnv()` now receives only `{ id }`; connector implementations should stop consuming `cwd` there.
+- **SDK: Export reusable option types.** `@flue/sdk` now exports option types for direct agent invocation, socket prompts, workflow-run event retrieval and streaming, and admin run listing, plus the `RunStatus` type.
+- MCP tools discovered through paginated listings now preserve output-schema validation and required task-execution metadata across every page.
+- `GET /admin/agents` and `client.admin.agents.list()` return one unpaginated list of all built agents. The unused `nextCursor` response field was removed from the SDK and OpenAPI schema.
+- Workflow run stores no longer prune completed histories implicitly after 50 runs. Retention is now owned by the deployment or configured store.
+- Cloudflare agent WebSockets now return a correlated error frame when persisted session restoration fails before a prompt.
+- Cloudflare WebSocket attachments strip query strings and fragments before persistence so URL-carried handshake credentials are not retained.
+- Agent and workflow WebSocket frames reject blank or whitespace-only `requestId` values, including optional agent ping IDs.
+- Published the Message-Driven Agents guide, Sandbox Connector API, and Daytona integration guide on the documentation site. Replace saved root-guide or raw GitHub links with [Message-Driven Agents](https://flueframework.com/docs/guide/message-driven-agents/), [Sandbox Connector API](https://flueframework.com/docs/api/sandbox-api/), and [Daytona](https://flueframework.com/docs/ecosystem/sandboxes/daytona/).
+- Refreshed homepage and documentation canonical URLs and social-preview metadata.
+
 ## 0.9.0 - 2026-06-02
 
 ### Breaking Changes
