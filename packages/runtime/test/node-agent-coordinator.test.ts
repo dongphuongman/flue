@@ -370,6 +370,91 @@ leaseExpiresAt: 1,
 			expect(submission).toMatchObject({ status: 'settled' });
 			expect(submission?.error).toContain('exceeded maximum recovery attempts');
 		});
+
+		it('settles a completed canonical response as success when the retry budget is exhausted', async () => {
+			const dbPath = createTempDbPath();
+			const provider = createFauxProvider();
+			const store = await openExecutionStore(dbPath);
+
+			const input = makeDispatchInput();
+			await store.submissions.admitDispatch(input);
+			// Claiming increments attemptCount to 1; persisting maxRetry of 1
+			// exhausts the budget while the canonical response is completed.
+			await store.submissions.claimSubmission({
+				submissionId: input.dispatchId,
+				attemptId: 'attempt-exhausted-completed',
+				ownerId: 'test-owner',
+				leaseExpiresAt: 1,
+			});
+			await store.submissions.markSubmissionInputApplied(
+				{ submissionId: input.dispatchId, attemptId: 'attempt-exhausted-completed' },
+				{ maxRetry: 1, timeoutAt: 0 },
+			);
+
+			// Persist a session where the dispatched input already has a
+			// completed canonical response — the crash happened after the
+			// response was checkpointed but before the submission settled.
+			const storageKey = createSessionStorageKey('instance-1', 'default', 'default');
+			const now = new Date().toISOString();
+			await store.sessions.save(storageKey, {
+				version: 6,
+				affinityKey: generateSessionAffinityKey(),
+				taskSessions: [],
+				entries: [
+					{
+						type: 'message',
+						id: 'e1',
+						parentId: null,
+						timestamp: now,
+						message: { role: 'user', content: 'Hello', timestamp: Date.now() } as any,
+						dispatch: { dispatchId: input.dispatchId },
+					},
+					{
+						type: 'message',
+						id: 'e2',
+						parentId: 'e1',
+						timestamp: now,
+						message: {
+							role: 'assistant',
+							content: [{ type: 'text', text: 'Completed canonical response.' }],
+							stopReason: 'stop',
+							api: 'test',
+							provider: 'test',
+							model: 'test',
+							usage: {
+								input: 0,
+								output: 0,
+								totalTokens: 0,
+								cost: { input: 0, output: 0, total: 0 },
+							},
+							timestamp: Date.now(),
+						} as any,
+					},
+				],
+				leafId: 'e2',
+				metadata: {},
+				createdAt: now,
+				updatedAt: now,
+			});
+
+			// "Restart": reconciliation must preserve the completed work —
+			// settle success, no terminalization, no interruption advisory.
+			provider.setResponses([fauxAssistantMessage('Should not be called.')]);
+			const { coordinator, executionStore } = await createFauxCoordinator(dbPath, provider);
+			await coordinator.reconcileSubmissions();
+
+			const submission = await executionStore.submissions.getSubmission(input.dispatchId);
+			expect(submission).toMatchObject({ status: 'settled' });
+			expect(submission?.error).toBeUndefined();
+			const session = await executionStore.sessions.load(storageKey);
+			const advisories = (session?.entries ?? []).filter(
+				(entry) =>
+					entry.type === 'message' &&
+					entry.message.role === 'signal' &&
+					(entry.message as any).type === 'submission_interrupted',
+			);
+			expect(advisories).toEqual([]);
+		});
 	});
 
 	describe('timeout', () => {
@@ -415,6 +500,89 @@ leaseExpiresAt: 1,
 			const submission = await executionStore.submissions.getSubmission(input.dispatchId);
 			expect(submission).toMatchObject({ status: 'settled' });
 			expect(submission?.error).toContain('exceeded configured timeout');
+		});
+
+		it('settles a completed canonical response as success when the configured timeout has expired', async () => {
+			const dbPath = createTempDbPath();
+			const provider = createFauxProvider();
+			const store = await openExecutionStore(dbPath);
+
+			const input = makeDispatchInput();
+			await store.submissions.admitDispatch(input);
+			await store.submissions.claimSubmission({
+				submissionId: input.dispatchId,
+				attemptId: 'attempt-timeout-completed',
+				ownerId: 'test-owner',
+				leaseExpiresAt: 1,
+			});
+			await store.submissions.markSubmissionInputApplied(
+				{ submissionId: input.dispatchId, attemptId: 'attempt-timeout-completed' },
+				{ maxRetry: 10, timeoutAt: Date.now() - 1000 },
+			);
+
+			// Persist a session where the dispatched input already has a
+			// completed canonical response — the crash happened after the
+			// response was checkpointed but before the submission settled.
+			const storageKey = createSessionStorageKey('instance-1', 'default', 'default');
+			const now = new Date().toISOString();
+			await store.sessions.save(storageKey, {
+				version: 6,
+				affinityKey: generateSessionAffinityKey(),
+				taskSessions: [],
+				entries: [
+					{
+						type: 'message',
+						id: 'e1',
+						parentId: null,
+						timestamp: now,
+						message: { role: 'user', content: 'Hello', timestamp: Date.now() } as any,
+						dispatch: { dispatchId: input.dispatchId },
+					},
+					{
+						type: 'message',
+						id: 'e2',
+						parentId: 'e1',
+						timestamp: now,
+						message: {
+							role: 'assistant',
+							content: [{ type: 'text', text: 'Completed canonical response.' }],
+							stopReason: 'stop',
+							api: 'test',
+							provider: 'test',
+							model: 'test',
+							usage: {
+								input: 0,
+								output: 0,
+								totalTokens: 0,
+								cost: { input: 0, output: 0, total: 0 },
+							},
+							timestamp: Date.now(),
+						} as any,
+					},
+				],
+				leafId: 'e2',
+				metadata: {},
+				createdAt: now,
+				updatedAt: now,
+			});
+
+			// "Restart": reconciliation must preserve the completed work —
+			// settle success, no terminalization, no interruption advisory.
+			provider.setResponses([fauxAssistantMessage('Should not be called.')]);
+			const { coordinator, executionStore } = await createFauxCoordinator(dbPath, provider);
+			await coordinator.reconcileSubmissions();
+
+			const submission = await executionStore.submissions.getSubmission(input.dispatchId);
+			expect(submission).toMatchObject({ status: 'settled' });
+			expect(submission?.error).toBeUndefined();
+			const session = await executionStore.sessions.load(storageKey);
+			const advisories = (session?.entries ?? []).filter(
+				(entry) =>
+					entry.type === 'message' &&
+					entry.message.role === 'signal' &&
+					(entry.message as any).type === 'submission_interrupted',
+			);
+			expect(advisories).toEqual([]);
 		});
 	});
 

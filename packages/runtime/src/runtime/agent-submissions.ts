@@ -294,6 +294,20 @@ export async function reconcileInterruptedSubmission(
 	const attempt = submissionAttemptRef(submission);
 	if (!attempt) return { replacement: null, failedError: null };
 
+	// Inspect canonical session state first: a completed canonical response
+	// is finished provider work and settles as success unconditionally. The
+	// retry budget and timeout below gate only the retry/replacement and
+	// requeue branches — exhausting either must never discard (or append a
+	// contradictory interruption advisory over) work that already completed.
+	const payload = agentSubmissionPayload(input);
+	const dispatchId = agentSubmissionDispatchId(input);
+	const ctx = createContext(payload, dispatchId);
+	const state = await createAgentSubmissionSessionHandler(agent, input, (s) => s.inspectSubmissionInput(input))(ctx);
+	if (state === 'completed') {
+		await submissions.completeSubmission(attempt);
+		return { replacement: null, failedError: null };
+	}
+
 	// Check retry budget.
 	if (submission.attemptCount >= submission.maxRetry) {
 		const error = new Error(
@@ -314,12 +328,6 @@ export async function reconcileInterruptedSubmission(
 		return { replacement: null, failedError: failed ? error : null };
 	}
 
-	// Inspect canonical session state.
-	const payload = agentSubmissionPayload(input);
-	const dispatchId = agentSubmissionDispatchId(input);
-	const ctx = createContext(payload, dispatchId);
-	const state = await createAgentSubmissionSessionHandler(agent, input, (s) => s.inspectSubmissionInput(input))(ctx);
-
 	// Check turn journal for pre-commit interruption that can be retried.
 	//
 	// TODO(multi-process): The stream recovery and tool repair branches below
@@ -337,7 +345,6 @@ export async function reconcileInterruptedSubmission(
 	// not a supported configuration.
 	const journal = await submissions.getTurnJournal(submission.submissionId);
 	if (
-		state !== 'completed' &&
 		journal?.phase === 'provider_started' &&
 		journal.committed === false &&
 		journal.streamKey &&
@@ -412,12 +419,6 @@ export async function reconcileInterruptedSubmission(
 			'interrupted_before_input_marker', error, createContext,
 		);
 		return { replacement: null, failedError: failed ? error : null };
-	}
-
-	// Post-input-application: check if the session already completed.
-	if (state === 'completed') {
-		await submissions.completeSubmission(attempt);
-		return { replacement: null, failedError: null };
 	}
 
 	// Collect interrupted tool metadata from the journal when available.
