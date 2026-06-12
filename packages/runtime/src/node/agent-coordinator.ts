@@ -357,7 +357,28 @@ export function createNodeAgentCoordinator(options: {
 		await reconcileRunningSubmissions();
 	}
 
-	async function reconcileRunningSubmissions(): Promise<void> {
+	/** In-flight expired-lease reconciliation pass, if any. */
+	let reconcilePassInFlight: Promise<void> | null = null;
+
+	/**
+	 * Reconcile submissions whose leases have expired. Single-flight:
+	 * concurrent callers share one pass instead of running two. Without
+	 * this, startup's `reconcileSubmissions()` and the claim loop's first
+	 * `periodicLeaseScan` (started by `ensureClaimLoop` just before the
+	 * direct call) would each list the same expired submissions and run
+	 * `reconcileInterruptedSubmission` twice per submission with
+	 * independent fresh Sessions — the journal-attempt CAS picks one
+	 * winner, and the loser can append a spurious interruption advisory
+	 * to session history before its settlement CAS is rejected.
+	 */
+	function reconcileRunningSubmissions(): Promise<void> {
+		reconcilePassInFlight ??= runReconciliationPass().finally(() => {
+			reconcilePassInFlight = null;
+		});
+		return reconcilePassInFlight;
+	}
+
+	async function runReconciliationPass(): Promise<void> {
 		for (const submission of await submissions.listExpiredSubmissions()) {
 			// Skip submissions still actively processing in this coordinator
 			// (possible when heartbeat renewals fail transiently and the lease

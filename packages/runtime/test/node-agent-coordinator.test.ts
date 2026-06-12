@@ -5,7 +5,7 @@ import {
 	registerFauxProvider,
 } from '@earendil-works/pi-ai';
 import * as v from 'valibot';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { join } from 'node:path';
 import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -229,6 +229,35 @@ leaseExpiresAt: 1,
 			const { coordinator, executionStore } = await createFauxCoordinator(dbPath, provider);
 			await coordinator.reconcileSubmissions();
 
+			const submission = await executionStore.submissions.getSubmission(input.dispatchId);
+			expect(submission).toMatchObject({ status: 'settled' });
+			expect(submission?.error).toBeUndefined();
+		});
+
+		it('performs exactly one expired-lease pass when reconciling a startup backlog', async () => {
+			const dbPath = createTempDbPath();
+			// Backlog: a claimed submission whose lease expired (crashed process).
+			const store1 = await openExecutionStore(dbPath);
+			const input = makeDispatchInput();
+			await store1.submissions.admitDispatch(input);
+			await store1.submissions.claimSubmission({
+				submissionId: input.dispatchId,
+				attemptId: 'attempt-interrupted',
+				ownerId: 'test-owner',
+				leaseExpiresAt: 1,
+			});
+
+			// "Restart": reconcileSubmissions() starts the claim loop (whose
+			// first claim pass also scans for expired leases) and then runs
+			// its own awaited reconciliation. The two must share one pass,
+			// not race two over the same expired submissions.
+			const provider = createFauxProvider();
+			provider.setResponses([fauxAssistantMessage('Recovered reply.')]);
+			const { coordinator, executionStore } = await createFauxCoordinator(dbPath, provider);
+			const listExpired = vi.spyOn(executionStore.submissions, 'listExpiredSubmissions');
+			await coordinator.reconcileSubmissions();
+
+			expect(listExpired).toHaveBeenCalledTimes(1);
 			const submission = await executionStore.submissions.getSubmission(input.dispatchId);
 			expect(submission).toMatchObject({ status: 'settled' });
 			expect(submission?.error).toBeUndefined();
