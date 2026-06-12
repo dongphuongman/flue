@@ -10,7 +10,6 @@ describe('Cloudflare context', () => {
 	it('returns request-scoped Cloudflare primitives when code runs inside a Cloudflare context', () => {
 		const context = {
 			env: { SECRET: 'request-scoped' },
-			agentInstance: { state: { sessions: {} }, setState: vi.fn() },
 			storage: { sql: { exec: vi.fn() } },
 		};
 
@@ -26,13 +25,11 @@ describe('Cloudflare context', () => {
 		});
 		const firstContext = {
 			env: { request: 'first' },
-			agentInstance: { state: {}, setState: vi.fn() },
-			storage: { sql: { request: 'first' } },
+			storage: { sql: { exec: vi.fn() } },
 		};
 		const secondContext = {
 			env: { request: 'second' },
-			agentInstance: { state: {}, setState: vi.fn() },
-			storage: { sql: { request: 'second' } },
+			storage: { sql: { exec: vi.fn() } },
 		};
 
 		const first = runWithCloudflareContext(firstContext, async () => {
@@ -65,8 +62,7 @@ describe('Cloudflare context', () => {
 		};
 		const context = {
 			env: {},
-			agentInstance: { state: {}, setState: vi.fn() },
-			storage: { sql: {} },
+			storage: { sql: { exec: vi.fn() } },
 			durableObjectIdentity,
 		};
 
@@ -78,8 +74,7 @@ describe('Cloudflare context', () => {
 	it('rejects Durable Object identity access when the current context omits identity', () => {
 		const context = {
 			env: {},
-			agentInstance: { state: {}, setState: vi.fn() },
-			storage: { sql: {} },
+			storage: { sql: { exec: vi.fn() } },
 		};
 
 		expect(() => runWithCloudflareContext(context, () => getDurableObjectIdentity())).toThrow(

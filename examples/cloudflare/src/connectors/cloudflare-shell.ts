@@ -256,5 +256,5 @@ function buildCodeToolDescription(): string {
 
 export function getDefaultWorkspace(): Workspace {
 	const { storage } = getCloudflareContext();
-	return new Workspace({ sql: storage.sql });
+	return new Workspace({ sql: storage.sql as SqlStorage });
 }

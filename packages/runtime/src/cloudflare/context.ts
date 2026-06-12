@@ -6,15 +6,12 @@
  * to the request/fiber that invoked them instead of sharing a module global.
  */
 import { AsyncLocalStorage } from 'node:async_hooks';
+import type { SqlStorage } from '../sql-storage.ts';
 
 export interface CloudflareContext {
-	env: Record<string, any>;
-	agentInstance: {
-		state: any;
-		setState(state: any): void;
-	};
+	env: Record<string, unknown>;
 	storage: {
-		sql: any;
+		sql: SqlStorage;
 	};
 	durableObjectIdentity?: FlueDurableObjectIdentity;
 }

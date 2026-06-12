@@ -329,7 +329,6 @@ function runWithInstanceContext(doInstance, identity, fn) {
   return runWithCloudflareContext(
     {
       env: doInstance.env,
-      agentInstance: doInstance,
       storage: doInstance.ctx.storage,
       durableObjectIdentity: createDurableObjectIdentity(doInstance, identity),
     },

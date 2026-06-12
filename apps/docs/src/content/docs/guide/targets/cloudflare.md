@@ -267,7 +267,6 @@ Returns the current Cloudflare runtime context. Only valid while code is running
 The returned `CloudflareContext` includes:
 
 - `env` -- the Worker's environment bindings.
-- `agentInstance` -- the active generated Durable Object instance, with `state` and `setState(...)`.
 - `storage` -- the Durable Object's `{ sql }` SQLite storage handle.
 
 Throws outside of Cloudflare runtime work.
