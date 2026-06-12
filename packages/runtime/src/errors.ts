@@ -293,26 +293,23 @@ class AgentNotFoundError extends FlueHttpError {
 }
 
 class WorkflowNotFoundError extends FlueHttpError {
-	constructor({ name, available }: { name: string; available: readonly string[] }) {
+	constructor({
+		name,
+		available,
+		notHttp = false,
+	}: { name: string; available: readonly string[]; notHttp?: boolean }) {
 		super({
 			type: 'workflow_not_found',
 			message: `Workflow "${name}" is not registered.`,
+			// Caller-safe and identical for unknown and non-HTTP workflows, so
+			// public callers cannot enumerate internal-only workflow names by
+			// probing /workflows/<name>.
 			details: `Verify the workflow name is correct.`,
-			dev:
-				`Available workflows: ${formatList(available)}.\n` +
-				`Workflows are loaded from the project root's "workflows/" directory at build time.`,
-			status: 404,
-		});
-	}
-}
-
-class WorkflowNotHttpError extends FlueHttpError {
-	constructor({ name }: { name: string }) {
-		super({
-			type: 'workflow_not_http',
-			message: `Workflow "${name}" is not web-accessible.`,
-			details: `This endpoint is not exposed over HTTP.`,
-			dev: `To expose it, export route middleware and call await next() to enter the workflow handler.`,
+			dev: notHttp
+				? `Workflow "${name}" is built but not exposed over HTTP. ` +
+					`To expose it, export route middleware and call await next() to enter the workflow handler.`
+				: `Available workflows: ${formatList(available)}.\n` +
+					`Workflows are loaded from the project root's "workflows/" directory at build time.`,
 			status: 404,
 		});
 	}
@@ -908,7 +905,11 @@ export function validateWorkflowRequest(opts: ValidateWorkflowRequestOptions): v
 		throw new WorkflowNotFoundError({ name: opts.name, available: opts.registeredWorkflows });
 	}
 	if (!opts.httpWorkflows.includes(opts.name)) {
-		throw new WorkflowNotHttpError({ name: opts.name });
+		throw new WorkflowNotFoundError({
+			name: opts.name,
+			available: opts.registeredWorkflows,
+			notHttp: true,
+		});
 	}
 }
 

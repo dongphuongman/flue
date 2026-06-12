@@ -880,7 +880,7 @@ describe('flue()', () => {
 		});
 	});
 
-	it('rejects an HTTP workflow when the workflow is built but not exposed over HTTP', async () => {
+	it('renders a non-HTTP workflow as workflow_not_found when probed over HTTP', async () => {
 		configureFlueRuntime({
 			target: 'node',
 			manifest: {
@@ -896,11 +896,13 @@ describe('flue()', () => {
 		);
 
 		expect(response.status).toBe(404);
+		// Wire-identical to an unknown workflow so public callers cannot
+		// enumerate internal-only workflow names by probing /workflows/<name>.
 		expect(await response.json()).toEqual({
 			error: {
-				type: 'workflow_not_http',
-				message: 'Workflow "internal-report" is not web-accessible.',
-				details: 'This endpoint is not exposed over HTTP.',
+				type: 'workflow_not_found',
+				message: 'Workflow "internal-report" is not registered.',
+				details: 'Verify the workflow name is correct.',
 			},
 		});
 	});
