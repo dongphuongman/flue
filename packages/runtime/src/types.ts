@@ -424,7 +424,7 @@ export interface AgentRuntimeConfig {
 	/** Working directory inside the initialized sandbox. */
 	cwd?: string;
 	/** Sandbox factory used to construct the initialized environment. */
-	sandbox?: SandboxFactory | BashFactory;
+	sandbox?: SandboxFactory;
 }
 
 /** Options for {@link FlueContext.init}. */
@@ -906,7 +906,10 @@ export interface BashLike {
 	};
 }
 
-/** Factory that constructs the agent's Bash-like runtime. Called once at init. */
+/**
+ * Factory that constructs the agent's Bash-like runtime. Called once at init.
+ * Pass to `bash()` to obtain the {@link SandboxFactory} that `sandbox` accepts.
+ */
 export type BashFactory = () => BashLike | Promise<BashLike>;
 
 export type LlmTextContent = {

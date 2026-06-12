@@ -7,13 +7,12 @@ import {
 import { discoverSessionContext } from './context.ts';
 import { Harness } from './harness.ts';
 import { dispatchGlobalEvent } from './runtime/events.ts';
-import { bashFactoryToSessionEnv, createCwdSessionEnv } from './sandbox.ts';
+import { createCwdSessionEnv } from './sandbox.ts';
 import type {
 	AgentConfig,
 	AgentHarnessOptions,
 	AgentProfile,
 	AgentRuntimeConfig,
-	BashFactory,
 	CreatedAgent,
 	FlueContext,
 	FlueEvent,
@@ -277,10 +276,6 @@ function hasInitModel(options: AgentRuntimeConfig | undefined): boolean {
 	);
 }
 
-function isBashFactory(value: unknown): value is BashFactory {
-	return typeof value === 'function';
-}
-
 function isSandboxFactory(value: unknown): value is SandboxFactory {
 	return (
 		typeof value === 'object' &&
@@ -298,9 +293,6 @@ async function resolveSessionEnv(
 ): Promise<{ env: SessionEnv; toolFactory?: SessionToolFactory }> {
 	if (sandbox === undefined) {
 		return { env: await config.createDefaultEnv() };
-	}
-	if (isBashFactory(sandbox)) {
-		return { env: await bashFactoryToSessionEnv(sandbox) };
 	}
 	if (isSandboxFactory(sandbox)) {
 		const env = await sandbox.createSessionEnv({ id });

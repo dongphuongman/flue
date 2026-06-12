@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createSandboxSessionEnv, type SandboxApi } from '../src/index.ts';
+import { bash, createSandboxSessionEnv, type SandboxApi } from '../src/index.ts';
 import { bashFactoryToSessionEnv } from '../src/internal.ts';
 import type { BashLike } from '../src/types.ts';
 
@@ -264,6 +264,36 @@ describe('createSandboxSessionEnv()', () => {
 			timeoutMs: undefined,
 			signal: controller.signal,
 		});
+	});
+});
+
+describe('bash()', () => {
+	it('routes exec and filesystem calls through the wrapped Bash runtime when used as a SandboxFactory', async () => {
+		const exec = vi.fn(async () => ({ stdout: 'ran', stderr: '', exitCode: 0 }));
+		const readFile = vi.fn(async () => 'notes');
+		const runtime: BashLike = {
+			exec,
+			getCwd: () => '/workspace',
+			fs: {
+				readFile,
+				readFileBuffer: async () => new Uint8Array(),
+				writeFile: async () => {},
+				stat: async () => ({}),
+				readdir: async () => [],
+				exists: async () => false,
+				mkdir: async () => {},
+				rm: async () => {},
+				resolvePath: (base, path) => `${base}/${path}`,
+			},
+		};
+
+		const factory = bash(() => runtime);
+		const env = await factory.createSessionEnv({ id: 'agent-1' });
+
+		await expect(env.exec('npm test')).resolves.toMatchObject({ stdout: 'ran', exitCode: 0 });
+		await expect(env.readFile('notes.txt')).resolves.toBe('notes');
+		expect(exec).toHaveBeenCalledWith('npm test', undefined);
+		expect(readFile).toHaveBeenCalledWith('/workspace/notes.txt');
 	});
 });
 

@@ -41,7 +41,7 @@ export type {
 	RunRecord,
 	RunStatus,
 } from './runtime/run-store.ts';
-export { createSandboxSessionEnv, type SandboxApi } from './sandbox.ts';
+export { bash, createSandboxSessionEnv, type SandboxApi } from './sandbox.ts';
 export { defineTool } from './tool.ts';
 export type {
 	AgentCreateContext,

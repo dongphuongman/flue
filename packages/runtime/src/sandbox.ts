@@ -4,7 +4,15 @@
 
 import { abortErrorFor } from './abort.ts';
 import { normalizePath } from './session.ts';
-import type { BashFactory, BashLike, FileStat, FlueFs, SessionEnv, ShellResult } from './types.ts';
+import type {
+	BashFactory,
+	BashLike,
+	FileStat,
+	FlueFs,
+	SandboxFactory,
+	SessionEnv,
+	ShellResult,
+} from './types.ts';
 
 export type { SessionEnv } from './types.ts';
 
@@ -83,6 +91,16 @@ export function createCwdSessionEnv(parentEnv: SessionEnv, cwd: string): Session
 		rm: (p, o) => parentEnv.rm(resolvePath(p), o),
 		cwd: scopedCwd,
 		resolvePath,
+	};
+}
+
+/**
+ * Wrap a just-bash factory into a {@link SandboxFactory}:
+ * `createAgent(() => ({ sandbox: bash(() => new Bash({ fs })) }))`.
+ */
+export function bash(factory: BashFactory): SandboxFactory {
+	return {
+		createSessionEnv: () => bashFactoryToSessionEnv(factory),
 	};
 }
 

@@ -11,6 +11,7 @@ import {
   FlueError,
   ResultUnavailableError,
   ToolInputValidationError,
+  bash,
   connectMcpServer,
   createAgent,
   defineAgentProfile,
@@ -205,20 +206,20 @@ The initializer runs whenever the runtime initializes a harness from the created
 
 #### `AgentRuntimeConfig`
 
-| Field           | Type                                     | Description                                                                                                                                                                 |
-| --------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `description`   | `string`                                 | Optional organizational metadata describing what this agent does. Overrides the profile description when set.                                                               |
-| `profile`       | `AgentProfile`                           | Reusable baseline profile. Created-agent fields replace or extend profile values.                                                                                           |
-| `model`         | `string \| false`                        | Default model specifier. Set to `false` to require call-level model selection.                                                                                              |
-| `instructions`  | `string`                                 | Instructions prepended to discovered workspace context.                                                                                                                     |
-| `skills`        | `Skill[]`                                | Additional registered skills available to initialized sessions.                                                                                                             |
-| `tools`         | `ToolDefinition[]`                       | Additional custom model-callable tools available to initialized sessions.                                                                                                   |
-| `subagents`     | `AgentProfile[]`                         | Additional named profiles available for delegated `session.task()` operations.                                                                                              |
-| `thinkingLevel` | `ThinkingLevel`                          | Default reasoning effort. Individual operations may override this value.                                                                                                    |
-| `compaction`    | `false \| CompactionConfig`              | Automatic conversation-compaction configuration. `false` disables threshold compaction; overflow recovery and explicit `session.compact()` calls still compact when needed. |
-| `durability`    | `DurabilityConfig`                       | Durability configuration for durable agent submissions. Controls recovery attempt limits and submission timeouts.                                                           |
-| `cwd`           | `string`                                 | Working directory inside the initialized sandbox.                                                                                                                           |
-| `sandbox`       | `SandboxFactory \| BashFactory`          | Sandbox factory used to construct the initialized environment. Omit for the default in-memory sandbox. See [Sandboxes](/docs/guide/sandboxes/).                             |
+| Field           | Type                        | Description                                                                                                                                                                                                         |
+| --------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `description`   | `string`                    | Optional organizational metadata describing what this agent does. Overrides the profile description when set.                                                                                                       |
+| `profile`       | `AgentProfile`              | Reusable baseline profile. Created-agent fields replace or extend profile values.                                                                                                                                   |
+| `model`         | `string \| false`           | Default model specifier. Set to `false` to require call-level model selection.                                                                                                                                      |
+| `instructions`  | `string`                    | Instructions prepended to discovered workspace context.                                                                                                                                                             |
+| `skills`        | `Skill[]`                   | Additional registered skills available to initialized sessions.                                                                                                                                                     |
+| `tools`         | `ToolDefinition[]`          | Additional custom model-callable tools available to initialized sessions.                                                                                                                                           |
+| `subagents`     | `AgentProfile[]`            | Additional named profiles available for delegated `session.task()` operations.                                                                                                                                      |
+| `thinkingLevel` | `ThinkingLevel`             | Default reasoning effort. Individual operations may override this value.                                                                                                                                            |
+| `compaction`    | `false \| CompactionConfig` | Automatic conversation-compaction configuration. `false` disables threshold compaction; overflow recovery and explicit `session.compact()` calls still compact when needed.                                         |
+| `durability`    | `DurabilityConfig`          | Durability configuration for durable agent submissions. Controls recovery attempt limits and submission timeouts.                                                                                                   |
+| `cwd`           | `string`                    | Working directory inside the initialized sandbox.                                                                                                                                                                   |
+| `sandbox`       | `SandboxFactory`            | Sandbox factory used to construct the initialized environment. Omit for the default in-memory sandbox; use `bash(...)` to wrap a custom just-bash factory (`BashFactory`). See [Sandboxes](/docs/guide/sandboxes/). |
 
 #### `CreatedAgent`
 
