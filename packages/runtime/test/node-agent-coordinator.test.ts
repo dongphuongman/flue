@@ -301,6 +301,361 @@ leaseExpiresAt: 1,
 			// for this specific submission.
 			expect(submission?.error).toBeDefined();
 		});
+
+		it('retries a submission whose input was applied but whose journal was never created', async () => {
+			const dbPath = createTempDbPath();
+			const store = await openExecutionStore(dbPath);
+
+			// Crash window between the input-application marker and the first
+			// turn-journal write: the canonical input is persisted, the marker
+			// fired, but no journal row exists — the provider was provably
+			// never reached, so reconciliation must retry instead of
+			// terminalizing.
+			const input = makeDispatchInput();
+			await store.submissions.admitDispatch(input);
+			await store.submissions.claimSubmission({
+				submissionId: input.dispatchId,
+				attemptId: 'attempt-no-journal',
+				ownerId: 'test-owner',
+				leaseExpiresAt: 1,
+			});
+			await store.submissions.markSubmissionInputApplied({
+				submissionId: input.dispatchId,
+				attemptId: 'attempt-no-journal',
+			});
+			const storageKey = createSessionStorageKey('instance-1', 'default', 'default');
+			const now = new Date().toISOString();
+			await store.sessions.save(storageKey, {
+				version: 6,
+				affinityKey: generateSessionAffinityKey(),
+				taskSessions: [],
+				entries: [
+					{
+						type: 'message',
+						id: 'e1',
+						parentId: null,
+						timestamp: now,
+						message: { role: 'user', content: 'Hello', timestamp: Date.now() } as any,
+						dispatch: { dispatchId: input.dispatchId },
+					},
+				],
+				leafId: 'e1',
+				metadata: {},
+				createdAt: now,
+				updatedAt: now,
+			});
+
+			// "Restart": reconciliation replays the turn from the persisted input.
+			const provider = createFauxProvider();
+			provider.setResponses([fauxAssistantMessage('Recovered from persisted input.')]);
+			const { coordinator, executionStore } = await createFauxCoordinator(dbPath, provider);
+			await coordinator.reconcileSubmissions();
+
+			const submission = await executionStore.submissions.getSubmission(input.dispatchId);
+			expect(submission).toMatchObject({ status: 'settled' });
+			expect(submission?.error).toBeUndefined();
+			const session = await executionStore.sessions.load(storageKey);
+			const entries = session?.entries ?? [];
+			const assistants = entries.filter(
+				(entry) => entry.type === 'message' && entry.message.role === 'assistant',
+			);
+			expect(assistants.at(-1)).toMatchObject({
+				message: { content: [{ type: 'text', text: 'Recovered from persisted input.' }] },
+			});
+			const advisories = entries.filter(
+				(entry) =>
+					entry.type === 'message' &&
+					entry.message.role === 'signal' &&
+					(entry.message as any).type === 'submission_interrupted',
+			);
+			expect(advisories).toEqual([]);
+		});
+
+		it('resumes a submission interrupted during transient-retry backoff after restart', async () => {
+			const dbPath = createTempDbPath();
+			const store = await openExecutionStore(dbPath);
+
+			// Crash during the transient-retry backoff: the provider returned a
+			// retryable error which was checkpointed WITHOUT committing the
+			// journal, and the process died waiting to retry. Restart must
+			// resume the retry rather than terminally failing the submission.
+			const input = makeDispatchInput();
+			await store.submissions.admitDispatch(input);
+			const claimed = await store.submissions.claimSubmission({
+				submissionId: input.dispatchId,
+				attemptId: 'attempt-backoff',
+				ownerId: 'test-owner',
+				leaseExpiresAt: 1,
+			});
+			expect(claimed).toBeTruthy();
+			if (!claimed) throw new Error('Expected claimed submission.');
+			await store.submissions.markSubmissionInputApplied({
+				submissionId: input.dispatchId,
+				attemptId: 'attempt-backoff',
+			});
+			await store.submissions.beginTurnJournal({
+				submissionId: input.dispatchId,
+				sessionKey: claimed.sessionKey,
+				kind: 'dispatch',
+				attemptId: 'attempt-backoff',
+				operationId: 'op-1',
+				turnId: 'turn-1',
+				phase: 'before_provider',
+			});
+			await store.submissions.updateTurnJournalPhase(
+				{ submissionId: input.dispatchId, attemptId: 'attempt-backoff' },
+				'provider_started',
+			);
+			const storageKey = createSessionStorageKey('instance-1', 'default', 'default');
+			const now = new Date().toISOString();
+			await store.sessions.save(storageKey, {
+				version: 6,
+				affinityKey: generateSessionAffinityKey(),
+				taskSessions: [],
+				entries: [
+					{
+						type: 'message',
+						id: 'e1',
+						parentId: null,
+						timestamp: now,
+						message: { role: 'user', content: 'Hello', timestamp: Date.now() } as any,
+						dispatch: { dispatchId: input.dispatchId },
+					},
+					{
+						type: 'message',
+						id: 'e2',
+						parentId: 'e1',
+						timestamp: now,
+						message: {
+							role: 'assistant',
+							content: [],
+							stopReason: 'error',
+							errorMessage: '429 Too Many Requests',
+							api: 'test',
+							provider: 'test',
+							model: 'test',
+							usage: {
+								input: 0,
+								output: 0,
+								totalTokens: 0,
+								cost: { input: 0, output: 0, total: 0 },
+							},
+							timestamp: Date.now(),
+						} as any,
+					},
+				],
+				leafId: 'e2',
+				metadata: {},
+				createdAt: now,
+				updatedAt: now,
+			});
+
+			// "Restart": reconciliation resumes the retry (waiting out the
+			// backoff) and completes the submission.
+			const provider = createFauxProvider();
+			provider.setResponses([fauxAssistantMessage('Recovered after backoff.')]);
+			const { coordinator, executionStore } = await createFauxCoordinator(dbPath, provider);
+			await coordinator.reconcileSubmissions();
+
+			const submission = await executionStore.submissions.getSubmission(input.dispatchId);
+			expect(submission).toMatchObject({ status: 'settled' });
+			expect(submission?.error).toBeUndefined();
+			const session = await executionStore.sessions.load(storageKey);
+			const entries = session?.entries ?? [];
+			const assistants = entries.filter(
+				(entry) => entry.type === 'message' && entry.message.role === 'assistant',
+			);
+			expect(assistants.at(-1)).toMatchObject({
+				message: { content: [{ type: 'text', text: 'Recovered after backoff.' }] },
+			});
+			const advisories = entries.filter(
+				(entry) =>
+					entry.type === 'message' &&
+					entry.message.role === 'signal' &&
+					(entry.message as any).type === 'submission_interrupted',
+			);
+			expect(advisories).toEqual([]);
+		}, 15_000);
+	});
+
+	describe('graceful shutdown and resume', () => {
+		it('resumes from recovered stream chunks after shutdown aborts a streaming turn', async () => {
+			const dbPath = createTempDbPath();
+			// Slow streaming so shutdown deterministically lands mid-turn with
+			// partial output already persisted to durable chunk segments.
+			const provider = registerFauxProvider({
+				provider: `node-coordinator-test-${crypto.randomUUID()}`,
+				tokensPerSecond: 50,
+			});
+			providers.push(provider);
+			provider.setResponses([
+				fauxAssistantMessage(`The full answer that never finishes. ${'lorem ipsum dolor '.repeat(250)}`),
+			]);
+			const { coordinator, executionStore } = await createFauxCoordinator(dbPath, provider);
+
+			const input = makeDispatchInput();
+			await coordinator.admitDispatch(input);
+			// Wait until the streaming turn has flushed at least one durable
+			// chunk segment, then shut down mid-stream.
+			let streamKey: string | undefined;
+			await vi.waitFor(
+				async () => {
+					const journal = await executionStore.submissions.getTurnJournal(input.dispatchId);
+					streamKey = journal?.streamKey;
+					if (!streamKey) throw new Error('Stream has not started yet.');
+					const segments = await executionStore.submissions.getStreamChunkSegments(streamKey);
+					expect(segments.length).toBeGreaterThan(0);
+				},
+				{ timeout: 10_000, interval: 50 },
+			);
+			await coordinator.shutdown();
+
+			// Shutdown leaves recoverable state behind: the submission stays
+			// running, the journal stays uncommitted, and the partial-stream
+			// chunks survive the aborted turn's checkpoint.
+			expect(await executionStore.submissions.getSubmission(input.dispatchId)).toMatchObject({
+				status: 'running',
+			});
+			const journal = await executionStore.submissions.getTurnJournal(input.dispatchId);
+			expect(journal?.committed).toBe(false);
+			if (!journal?.streamKey) throw new Error('Expected a stream key in the journal.');
+			const segments = await executionStore.submissions.getStreamChunkSegments(journal.streamKey);
+			expect(segments.length).toBeGreaterThan(0);
+
+			// "Restart": advance the clock past the shut-down coordinator's
+			// lease so reconciliation picks the submission up.
+			const realNow = Date.now.bind(Date);
+			const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => realNow() + 60_000);
+			try {
+				provider.setResponses([fauxAssistantMessage('Recovered completion.')]);
+				const { coordinator: restarted, executionStore: store2 } = await createFauxCoordinator(dbPath, provider);
+				await restarted.reconcileSubmissions();
+
+				const submission = await store2.submissions.getSubmission(input.dispatchId);
+				expect(submission).toMatchObject({ status: 'settled' });
+				expect(submission?.error).toBeUndefined();
+				const storageKey = createSessionStorageKey('instance-1', 'default', 'default');
+				const session = await store2.sessions.load(storageKey);
+				const entries = session?.entries ?? [];
+				// The recovered partial preserves the output collected before
+				// the abort, and the continuation signal marks the resume.
+				const recoveredPartial = entries.find(
+					(entry) =>
+						entry.type === 'message' &&
+						entry.message.role === 'assistant' &&
+						(entry.message as any).stopReason === 'aborted' &&
+						JSON.stringify((entry.message as any).content).includes('lorem ipsum'),
+				);
+				expect(recoveredPartial).toBeDefined();
+				const continued = entries.filter(
+					(entry) =>
+						entry.type === 'message' &&
+						entry.message.role === 'signal' &&
+						(entry.message as any).type === 'stream_continued',
+				);
+				expect(continued).toHaveLength(1);
+				const assistants = entries.filter(
+					(entry) => entry.type === 'message' && entry.message.role === 'assistant',
+				);
+				expect(assistants.at(-1)).toMatchObject({
+					message: { content: [{ type: 'text', text: 'Recovered completion.' }] },
+				});
+				const advisories = entries.filter(
+					(entry) =>
+						entry.type === 'message' &&
+						entry.message.role === 'signal' &&
+						(entry.message as any).type === 'submission_interrupted',
+				);
+				expect(advisories).toEqual([]);
+			} finally {
+				nowSpy.mockRestore();
+			}
+		}, 30_000);
+
+		it('recovers a submission interrupted by shutdown during a task tool call', async () => {
+			const dbPath = createTempDbPath();
+			const provider = createFauxProvider();
+			// Gate the child task session's model turn so shutdown
+			// deterministically arrives while the subagent is mid-prompt.
+			let releaseChild!: () => void;
+			const childBlocked = new Promise<void>((resolve) => {
+				releaseChild = resolve;
+			});
+			let childReachedResolve!: () => void;
+			const childReached = new Promise<void>((resolve) => {
+				childReachedResolve = resolve;
+			});
+			provider.setResponses([
+				fauxAssistantMessage([fauxToolCall('task', { prompt: 'Delegated work' })], {
+					stopReason: 'toolUse',
+				}),
+				async () => {
+					childReachedResolve();
+					await childBlocked;
+					return fauxAssistantMessage('Child reply that never completes.');
+				},
+				// Consumed by the parent's post-tool turn, which aborts before
+				// any content is delivered.
+				fauxAssistantMessage('Aborted before delivery.'),
+			]);
+			const { coordinator, executionStore } = await createFauxCoordinator(dbPath, provider);
+
+			const input = makeDispatchInput();
+			await coordinator.admitDispatch(input);
+			await childReached;
+			const shutdownPromise = coordinator.shutdown();
+			releaseChild();
+			await shutdownPromise;
+
+			expect(await executionStore.submissions.getSubmission(input.dispatchId)).toMatchObject({
+				status: 'running',
+			});
+			const journal = await executionStore.submissions.getTurnJournal(input.dispatchId);
+			expect(journal?.committed).toBe(false);
+
+			// "Restart": advance the clock past the shut-down coordinator's lease.
+			const realNow = Date.now.bind(Date);
+			const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => realNow() + 60_000);
+			try {
+				provider.setResponses([fauxAssistantMessage('Recovered after task interruption.')]);
+				const { coordinator: restarted, executionStore: store2 } = await createFauxCoordinator(dbPath, provider);
+				await restarted.reconcileSubmissions();
+
+				const submission = await store2.submissions.getSubmission(input.dispatchId);
+				expect(submission).toMatchObject({ status: 'settled' });
+				expect(submission?.error).toBeUndefined();
+				const storageKey = createSessionStorageKey('instance-1', 'default', 'default');
+				const session = await store2.sessions.load(storageKey);
+				const entries = session?.entries ?? [];
+				// The interrupted task's tool result is preserved exactly as
+				// collected — an error result, never a fabricated success.
+				const toolResults = entries.filter(
+					(entry) => entry.type === 'message' && entry.message.role === 'toolResult',
+				);
+				expect(toolResults).toHaveLength(1);
+				expect((toolResults[0] as any).message.isError).toBe(true);
+				const assistants = entries.filter(
+					(entry) => entry.type === 'message' && entry.message.role === 'assistant',
+				);
+				expect(assistants.at(-1)).toMatchObject({
+					message: { content: [{ type: 'text', text: 'Recovered after task interruption.' }] },
+				});
+				// The child task session is its own session: its record survives
+				// and its history keeps the aborted partial untouched.
+				expect(session?.taskSessions).toHaveLength(1);
+				const childSessionName = session?.taskSessions[0]?.session;
+				if (!childSessionName) throw new Error('Expected a recorded task session.');
+				const childData = await store2.sessions.load(
+					createSessionStorageKey('instance-1', 'default', childSessionName),
+				);
+				const childAssistants = (childData?.entries ?? []).filter(
+					(entry) => entry.type === 'message' && entry.message.role === 'assistant',
+				);
+				expect((childAssistants.at(-1) as any)?.message.stopReason).toBe('aborted');
+			} finally {
+				nowSpy.mockRestore();
+			}
+		}, 30_000);
 	});
 
 	describe('attempt exhaustion', () => {
