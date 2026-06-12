@@ -53,6 +53,8 @@ import {
 	buildSkillByPathlessNamePrompt,
 	buildWorkspaceSkillPrompt,
 	createResultTools,
+	FINISH_TOOL_NAME,
+	GIVE_UP_TOOL_NAME,
 	type ResultToolBundle,
 	ResultUnavailableError,
 } from './result.ts';
@@ -1117,6 +1119,10 @@ export class Session implements FlueSession {
 		const reserved = new Set<string>(builtinTools.map((t) => t.name));
 		reserved.add('task');
 		reserved.add('activate_skill');
+		// Reserved unconditionally so the failure is deterministic at definition
+		// time, not dependent on whether a `result` schema is used on a call.
+		reserved.add(FINISH_TOOL_NAME);
+		reserved.add(GIVE_UP_TOOL_NAME);
 		const names = new Set<string>();
 		for (const toolDef of tools) {
 			if (reserved.has(toolDef.name)) {

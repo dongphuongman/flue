@@ -7,10 +7,10 @@ import type { PackagedSkillDirectory, SkillReference } from './types.ts';
 
 /**
  * Names of the framework-injected tools used to capture structured results.
- * Surfaced for diagnostics and logging; not part of the public API.
+ * Reserved at custom-tool validation time; not part of the public API.
  */
-const FINISH_TOOL_NAME = 'finish';
-const GIVE_UP_TOOL_NAME = 'give_up';
+export const FINISH_TOOL_NAME = 'finish';
+export const GIVE_UP_TOOL_NAME = 'give_up';
 
 /** Footer appended to user prompts/skill bodies when a `result` schema is set. */
 function buildResultFooter(): string {
