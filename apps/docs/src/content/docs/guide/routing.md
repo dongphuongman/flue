@@ -110,6 +110,8 @@ Mounting `flue()` does not make every discovered agent or workflow directly invo
 
 Run reads at `GET /runs/:runId` (event streaming, and the run record via `?meta`) are not gated by any module export: the route is registered unconditionally beneath the mount path and serves any admitted workflow run, however it was invoked. When the owning workflow exports `route` middleware, both views run that middleware before disclosing whether the run exists. Unknown run IDs return `404`.
 
+If you want run existence to stay undisclosed to unauthorized callers, have your `route` middleware reject with the same `404` shape an unknown run produces — a `401`/`403` from per-workflow middleware tells the caller a run with that ID exists. For policies that should cover every run regardless of workflow (a shared auth gate, rate limiting), apply ordinary Hono middleware in your `app.ts` above the mounted Flue app — your application owns the request path, so `app.use('/api/runs/*', ...)` runs before any Flue routing.
+
 An agent used only through application-owned `dispatch(...)` calls does not need a public transport export.
 
 See [Agents](/docs/guide/building-agents/) for creating and exposing continuing agent instances, and [Workflows](/docs/guide/workflows/) for exposing finite operations and inspecting their runs.
