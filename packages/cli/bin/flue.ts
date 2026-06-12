@@ -1023,6 +1023,7 @@ function startLocalProcess(
 		env: {
 			...process.env,
 			FLUE_MODE: 'local',
+			FLUE_INTERNAL_CLI_IPC: '1',
 			FLUE_CLI_TARGET: target,
 			FLUE_CLI_NAME: name,
 			...(id === undefined ? {} : { FLUE_CLI_ID: id }),

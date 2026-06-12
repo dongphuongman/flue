@@ -98,7 +98,16 @@ const isLocalMode = process.env.FLUE_MODE === 'local';
 const localCliTarget = process.env.FLUE_CLI_TARGET;
 const localCliName = process.env.FLUE_CLI_NAME;
 const localCliId = process.env.FLUE_CLI_ID;
-const isLocalCliMode = localCliTarget !== undefined || localCliName !== undefined || localCliId !== undefined;
+// IPC mode requires the explicit internal gate set by the Flue CLI in
+// addition to the target vars, so user-supplied FLUE_CLI_* values alone
+// can never switch a production server into IPC mode.
+const isLocalCliMode =
+  process.env.FLUE_INTERNAL_CLI_IPC === '1' &&
+  (localCliTarget !== undefined || localCliName !== undefined || localCliId !== undefined);
+const hasIpcChannel = typeof process.send === 'function';
+if (isLocalCliMode && !hasIpcChannel) {
+  console.warn('[flue] FLUE_INTERNAL_CLI_IPC is set but no IPC channel was inherited; ignoring it and starting the HTTP server.');
+}
 
 // ─── Sandbox Environments ───────────────────────────────────────────────────
 
@@ -358,10 +367,7 @@ function startLocalAgent(name, id) {
   });
 }
 
-if (isLocalCliMode) {
-  if (typeof process.send !== 'function') {
-    throw new Error('[flue] Local CLI execution requires an inherited IPC connection.');
-  }
+if (isLocalCliMode && hasIpcChannel) {
   if (!localCliName || (localCliTarget !== 'workflow' && localCliTarget !== 'agent')) {
     failLocalStartup('Invalid local CLI target configuration.');
   } else if (localCliTarget === 'workflow') {

@@ -260,6 +260,8 @@ node dist/server.mjs
 PORT=8080 node dist/server.mjs
 ```
 
+The `FLUE_MODE`, `FLUE_CLI_*`, and `FLUE_INTERNAL_CLI_IPC` environment variables are reserved by the Flue CLI — do not set them when starting the built server. In particular, `FLUE_MODE=local` in production includes developer guidance in error envelopes.
+
 The default root-mounted Flue application can expose:
 
 - `POST /agents/:name/:id` — send an attached prompt to an agent module that exports `route`;
