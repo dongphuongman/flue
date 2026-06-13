@@ -1670,6 +1670,180 @@ Final reference gap audit:
   credential and authorization concerns.
 - No justified authenticated HTTP ingress gap remains.
 
+### Linear — 2026-06-13
+
+Status:
+
+- Complete.
+
+Reference capability brief:
+
+- The high-level adapter documentation describes issue comments, nested
+  comment replies, app-actor agent sessions, several credential and
+  installation modes, reactions, activity progress, and broad Linear API
+  behavior.
+- No reference implementation, architecture, types, package declarations,
+  fixtures, payloads, snapshots, sample messages, or tests were consulted.
+
+Primary sources:
+
+- Linear webhook delivery, retry, payload, signature, timestamp, and source-IP
+  documentation.
+- Linear SDK webhook-helper documentation and current
+  `@linear/sdk@86.0.0` declarations and package source.
+- Linear agent interaction and agent-session webhook documentation.
+- Linear's current public GraphQL and webhook SDL.
+- Linear's official Cloudflare Workers weather-agent example, including its
+  `@linear/sdk` and `nodejs_compat` deployment configuration.
+- Current `@linear/sdk` npm metadata and dependency declarations.
+
+Clean-room affirmation:
+
+- All public types, normalized event families, synthetic webhook payloads,
+  fake ids, timestamps, assertions, and tests were designed from Linear's
+  primary sources and Flue's existing channel contract. Nothing was copied or
+  translated from Chat SDK source, architecture, types, fixtures, payloads,
+  snapshots, sample messages, or tests.
+
+Decisions:
+
+- Add `@flue/linear` and `flue add linear`.
+- Publish one `POST /channels/<file>/webhook` route. Ordinary resource events
+  and agent-session events use the same signed webhook protocol and Linear
+  endpoint configuration, so separate Flue route surfaces would create
+  artificial setup complexity.
+- Verify the exact raw request bytes with Web Crypto HMAC-SHA256 before
+  parsing, then require the signed `webhookTimestamp` within Linear's
+  documented one-minute replay window.
+- Accept optional fixed `organizationId` and `webhookId` constraints while
+  allowing an application that already owns multi-organization installation
+  state to route all payloads authorized by one signing secret.
+- Normalize comment, issue, project, and agent-session families. Preserve
+  unsupported verified resource types or actions as an explicit unknown
+  event.
+- Preserve the header-derived `Linear-Delivery` id for application-owned
+  deduplication while documenting that Linear signs the body rather than this
+  transport header.
+- Validate nested agent-session organization, app-user, and activity-session
+  identities against the signed top-level payload before invoking application
+  code.
+- Model top-level issue comments as the issue conversation. Model replies with
+  the signed parent/root comment id. Model agent sessions with their stable
+  session id; narrowed event variants expose the corresponding narrowed
+  conversation type.
+- Keep normal Hono and Fetch response behavior: `undefined` becomes an empty
+  `200`, JSON-compatible values become JSON responses, and `Response` values
+  pass through. Use a default and maximum 4.5-second application deadline
+  before Linear's documented five-second delivery deadline.
+- Keep the official `@linear/sdk` as the project-owned outbound client. The
+  canonical example supports personal API keys or pre-obtained OAuth access
+  tokens and demonstrates issue comments and agent-session response
+  activities.
+- Require `nodejs_compat` for the official SDK in workerd. This is a supported
+  path demonstrated by Linear's own Workers example and is already part of
+  Flue's Cloudflare target.
+
+Tests:
+
+- Added original synthetic comments, replies, issues, projects, unknown
+  resources, created agent sessions, and prompted agent sessions with distinct
+  organizations, webhooks, sessions, issues, comments, users, and activities.
+- Covered exact-byte HMAC verification, malformed signatures, stale and future
+  timestamps, media types, body limits, fixed identity mismatches, malformed
+  known payloads, nested agent-session identity mismatches, response
+  serialization, Hono status control, handler failure and timeout, and
+  canonical-key round trips.
+- Added permanent workerd verification of exact HMAC bytes and agent-session
+  normalization without Node compatibility.
+- Added permanent workerd execution of the real official `LinearClient` with
+  `nodejs_compat`, exercising comment and agent-activity GraphQL requests
+  against an injected fake Fetch transport.
+
+Validation:
+
+- Package build, strict typecheck, 15 Node protocol tests, and workerd ingress
+  tests pass.
+- Example strict typecheck, real `LinearClient` workerd test, Node build, and
+  Cloudflare build pass. Both builds discover exactly one `linear` channel.
+- A built Node server returned empty `200` for an original locally signed
+  delivery and `401` for the same body with an invalid signature.
+- Documentation check and production build pass.
+- The website connector build emits `/cli/connectors/linear.md`.
+- The real `flue add` CLI test suite passes and verifies the Linear route,
+  official SDK dependency, and Workers compatibility guidance.
+- Knip, scoped Biome lint, and whitespace validation pass.
+- Prepared publish docs were generated for all public packages.
+- The packed package contains the intended runtime declarations, JavaScript,
+  README, license metadata, and prepared docs without an outbound SDK client or
+  model tool.
+- A clean strict TypeScript consumer compiles against the packed tarball and
+  narrows comment and agent-session events plus their conversation identities.
+
+Focused review:
+
+- Reviewed the complete provider diff for exact-byte verification, replay
+  protection, fixed and nested identity boundaries, event normalization,
+  unknown forwarding, response deadlines, canonical identity, official SDK
+  execution in workerd, declarations, and documentation.
+- Tightened agent-session nested identity relationships before application
+  invocation.
+- Narrowed known event conversation types after packed-consumer validation
+  showed that agent-session users otherwise had to repeat a redundant type
+  check.
+- Corrected top-level comment identity after the final capability audit and
+  primary schema review showed that only comments with `parentId` belong to a
+  nested comment thread.
+- No unresolved correctness findings remain.
+
+Deviations:
+
+- The initial brief suggested using official verification helpers where
+  useful. The current SDK helper imports Node crypto, while Linear's security
+  contract is a small exact-body HMAC and timestamp check. `@flue/linear`
+  implements that contract directly with Web Crypto so ingress needs no
+  compatibility flag; the official SDK remains the project-owned outbound
+  client under its Linear-demonstrated Workers configuration.
+- The initial brief asked whether ordinary and agent-session events need
+  separate optional route surfaces. Primary-source setup and payload evidence
+  showed that both are selected categories on one signed webhook endpoint, so
+  the package intentionally exposes one route and one handler.
+
+Deferrals:
+
+- OAuth authorization and callback routes, token refresh, client-credentials
+  exchange, token encryption, organization-to-token lookup, and durable
+  installation state remain application-owned.
+- Multi-tenant applications may omit the fixed organization constraint, but
+  they must independently resolve and authorize the correct outbound client.
+- Agent activity policy, ephemeral thoughts, plans, external URLs, elicitation,
+  stop-signal behavior, editing, deletion, reactions, history, issue and
+  project queries, and broader GraphQL operations remain application behavior
+  through the project-owned SDK.
+- No live Linear workspace, OAuth application, webhook, API credential, or
+  provider request was used in automated or manual validation.
+
+Final reference gap audit:
+
+- Reopened only the pinned high-level Linear adapter README after
+  implementation; no reference source, declarations, fixtures, payloads,
+  sample messages, or tests were used.
+- Issue comments and nested reply threads are represented as verified ingress
+  with stable issue identities. Mention detection remains application policy
+  over the normalized actor and comment body.
+- App-actor session creation and follow-up prompts are represented as verified
+  ingress with stable agent-session identity, prompt context, activity,
+  guidance, and previous-comment context where supplied.
+- Posting to issue conversations and agent sessions is demonstrated with the
+  project-owned official SDK client.
+- Reactions, typing/progress activities, plans, streaming policy, edits,
+  deletion, message history, issue and project lookup, and other broad API
+  capabilities remain project-owned SDK behavior rather than Flue
+  abstractions.
+- Personal API keys and pre-obtained OAuth tokens are demonstrated.
+  Client-credentials and multi-tenant OAuth modes remain application
+  credential and installation-state concerns.
+- No justified verified HTTP ingress gap remains.
+
 ## Implementation log template
 
 Append one section per provider while implementing:

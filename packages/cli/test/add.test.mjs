@@ -49,6 +49,7 @@ before(async () => {
 			discord: 'channel--discord.md',
 			teams: 'channel--teams.md',
 			'google-chat': 'channel--google-chat.md',
+			linear: 'channel--linear.md',
 		};
 		const file = slug ? files[slug] : undefined;
 		if (!file) {
@@ -85,6 +86,7 @@ describe('flue add', () => {
 			result.stderr,
 			/flue add google-chat\s+channel\s+https:\/\/developers\.google\.com\/workspace\/chat/,
 		);
+		assert.match(result.stderr, /flue add linear\s+channel\s+https:\/\/linear\.app\/developers/);
 		assert.ok(result.stderr.includes('flue add <url> --category sandbox'));
 		assert.ok(result.stderr.includes('flue add <url> --category channel'));
 	});
@@ -108,6 +110,17 @@ describe('flue add', () => {
 		assert.ok(result.stdout.includes('/channels/google-chat/interactions'));
 		assert.ok(result.stdout.includes('/channels/google-chat/events'));
 		assert.ok(result.stdout.includes('https://www.googleapis.com/auth/chat.bot'));
+	});
+
+	it('prints the Linear recipe with verified ingress and the official SDK path', async () => {
+		const result = await runCli(['add', 'linear', '--print']);
+		assert.equal(result.code, 0);
+		assert.ok(result.stdout.startsWith('# Add a Linear Channel to Flue'));
+		assert.ok(result.stdout.includes('export const channel'));
+		assert.ok(result.stdout.includes('export const client'));
+		assert.ok(result.stdout.includes('/channels/linear/webhook'));
+		assert.ok(result.stdout.includes('@linear/sdk@^86.0.0'));
+		assert.ok(result.stdout.includes('nodejs_compat'));
 	});
 
 	it('prints a named channel recipe without registry frontmatter', async () => {

@@ -13,6 +13,7 @@ your application decide what happens next. Flue provides ingress packages for:
 | Discord     | `@flue/discord`     | `/channels/<file>/interactions`                            |
 | Teams       | `@flue/teams`       | `/channels/<file>/activities`                              |
 | Google Chat | `@flue/google-chat` | `/channels/<file>/interactions`, `/channels/<file>/events` |
+| Linear      | `@flue/linear`      | `/channels/<file>/webhook`                                 |
 
 The packages own signature verification, body limits, provider handshakes,
 identity checks, typed event normalization, and acknowledgement behavior. They
@@ -28,6 +29,7 @@ flue add slack --print | codex
 flue add discord --print | codex
 flue add teams --print | codex
 flue add google-chat --print | codex
+flue add linear --print | codex
 ```
 
 The recipe installs the ingress package and an established provider SDK or
@@ -47,8 +49,9 @@ flue add https://provider.example/webhooks --category channel --print | codex
 See the provider guides for [GitHub](/docs/guide/channels/github/),
 [Slack](/docs/guide/channels/slack/),
 [Discord](/docs/guide/channels/discord/),
-[Microsoft Teams](/docs/guide/channels/teams/), and
-[Google Chat](/docs/guide/channels/google-chat/), or
+[Microsoft Teams](/docs/guide/channels/teams/),
+[Google Chat](/docs/guide/channels/google-chat/), and
+[Linear](/docs/guide/channels/linear/), or
 [build a custom channel](/docs/guide/build-your-own-channel/).
 
 ## File-based routing
@@ -63,6 +66,7 @@ src/channels/teams.ts   -> /channels/teams/activities
 src/channels/google-chat.ts
                         -> /channels/google-chat/interactions
                            /channels/google-chat/events
+src/channels/linear.ts   -> /channels/linear/webhook
 ```
 
 The filename defines the channel namespace. Provider packages define fixed,
