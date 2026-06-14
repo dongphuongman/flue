@@ -21,7 +21,7 @@ Some highlights include:
 - **[Skills](/docs/guide/skills/):** Reusable expertise agents load on demand.
 - **[MCP Servers](/docs/guide/tools/#connect-mcp-servers):** Connect tools and services over the open MCP ecosystem.
 - **[Observability](/docs/guide/observability/):** Export traces to OpenTelemetry, Braintrust, Sentry, and more.
-- **[Channels](/docs/ecosystem/channels/):** Reach agents from provider webhooks, Chat SDK, or custom routes.
+- **[Channels](/docs/guide/channels/):** Receive verified provider events and connect them to agents or application code.
 
 ## Design Principles
 

@@ -9,9 +9,9 @@ sandbox environments.
 ## Channels
 
 Channel packages receive, verify, and normalize provider webhooks before your
-application handles them. Start with [Channels](/docs/ecosystem/channels/) to
-choose a provider and connect its events to agents, workflows, or
-application-owned routes.
+application handles them. Read the [Channels guide](/docs/guide/channels/) for
+the shared framework model, then choose a provider from the
+[channel catalog](/docs/ecosystem/channels/).
 
 ## Sandbox connectors
 

@@ -53,7 +53,7 @@ Build agents that can safely take action, maintain continuity, and connect to th
 - **[Skills](https://flueframework.com/docs/guide/skills/)** — Package reusable expertise and workflows that agents can load whenever a task needs specialized guidance.
 - **[MCP Servers](https://flueframework.com/docs/guide/tools/#connect-mcp-tools)** — Connect agents to authenticated tools and services through the open Model Context Protocol ecosystem.
 - **[Observability](https://flueframework.com/docs/guide/observability/)** — Monitor your agents and export traces to OpenTelemetry, Braintrust, Sentry, or your own telemetry stack.
-- **[Chat](https://flueframework.com/docs/guide/chat/)** — Connect agents to where your work happens across Slack, Teams, Discord, GitHub, and more.
+- **[Channels](https://flueframework.com/docs/guide/channels/)** — Receive verified events from Slack, Teams, Discord, GitHub, and more.
 
 ## Deploy Anywhere
 
