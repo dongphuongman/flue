@@ -1,13 +1,11 @@
 import { defineTool, dispatch } from '@flue/runtime';
 import {
 	createWhatsAppChannel,
-	type WebhookMessage,
-	type WebhookValue,
 	type WhatsAppConversationRef,
 } from '@flue/whatsapp';
 import { WhatsAppClient } from '@kapso/whatsapp-cloud-api';
 import assistant from '../agents/assistant.ts';
-import { sendTextMessage } from '../whatsapp-client.ts';
+import { inboundConversationRef, sendTextMessage } from '../whatsapp-client.ts';
 
 export const client = new WhatsAppClient({
 	accessToken: requiredEnv('WHATSAPP_ACCESS_TOKEN'),
@@ -30,7 +28,7 @@ export const channel = createWhatsAppChannel({
 				for (const message of value.messages ?? []) {
 					if (message.type !== 'text' && message.type !== 'interactive') continue;
 					await dispatch(assistant, {
-						id: channel.conversationKey(conversationRef(entry.id, value, message)),
+						id: channel.conversationKey(inboundConversationRef(entry.id, value, message)),
 						input: {
 							type: `whatsapp.${message.type}`,
 							messageId: message.id,
@@ -43,32 +41,6 @@ export const channel = createWhatsAppChannel({
 	},
 });
 
-/** Derives the bound destination from a native inbound message. */
-function conversationRef(
-	businessAccountId: string,
-	value: WebhookValue,
-	message: WebhookMessage,
-): WhatsAppConversationRef {
-	const phoneNumberId = value.metadata.phone_number_id;
-	if (message.group_id) {
-		return { type: 'group', businessAccountId, phoneNumberId, groupId: message.group_id };
-	}
-	// Prefer the business-scoped user id when Meta omits the phone number.
-	if (!message.from) {
-		return {
-			type: 'individual',
-			businessAccountId,
-			phoneNumberId,
-			destination: { type: 'user-id', userId: message.from_user_id },
-		};
-	}
-	return {
-		type: 'individual',
-		businessAccountId,
-		phoneNumberId,
-		destination: { type: 'phone-number', phoneNumber: message.from },
-	};
-}
 
 export function postMessage(ref: WhatsAppConversationRef) {
 	return defineTool({

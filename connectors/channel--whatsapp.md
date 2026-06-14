@@ -85,8 +85,8 @@ export const channel = createWhatsAppChannel({
   },
 });
 
-// Derive the bound destination from a native inbound message. Meta may omit the
-// phone number once a user adopts a username; prefer the business-scoped user id.
+// Derive stable inbound identity from Meta's business-scoped user id. Phone-number
+// destinations remain supported for explicitly constructed outbound references.
 function conversationRef(
   businessAccountId: string,
   value: WebhookValue,
@@ -96,19 +96,11 @@ function conversationRef(
   if (message.group_id) {
     return { type: 'group', businessAccountId, phoneNumberId, groupId: message.group_id };
   }
-  if (!message.from) {
-    return {
-      type: 'individual',
-      businessAccountId,
-      phoneNumberId,
-      destination: { type: 'user-id', userId: message.from_user_id },
-    };
-  }
   return {
     type: 'individual',
     businessAccountId,
     phoneNumberId,
-    destination: { type: 'phone-number', phoneNumber: message.from },
+    destination: { type: 'user-id', userId: message.from_user_id },
   };
 }
 
@@ -216,10 +208,10 @@ to the model.
 
 One POST may contain multiple entries, changes, messages, and statuses.
 `payload` is Meta's provider-native webhook object, forwarded unmodified and
-typed by `@whatsapp-cloudapi/types`. The callback is invoked once for the
-complete verified delivery; walk `payload.entry[].changes[]`, narrow on
-`change.field` and `message.type`, and process every applicable item before
-returning success.
+typed by the third-party, community-maintained `@whatsapp-cloudapi/types`
+package. The callback is invoked once for the complete verified delivery; walk
+`payload.entry[].changes[]`, narrow on `change.field` and `message.type`, and
+process every applicable item before returning success.
 
 Returning nothing produces an empty `200`. A JSON-compatible value becomes the
 response body. Return a normal Hono or Fetch `Response` for explicit status
@@ -235,18 +227,19 @@ unacceptable.
 
 The `message.type` discriminant covers text, image, audio, video, document,
 sticker, location, contacts, interactive button/list/flow replies, legacy
-buttons, reactions, order, system, and unsupported messages, plus any future
-type Meta adds (still forwarded at runtime). The `status` discriminant preserves
+buttons, reactions, order, system, and unsupported messages. Authenticated future
+shapes still forward at runtime, but may require an application cast or type
+guard until the type package models them. The `status` discriminant preserves
 sent, delivered, read, played, and failed states.
 
 ## Respect identity boundaries
 
 Meta supplies a Business-Scoped User ID (`from_user_id`) on every incoming
 message and may omit the sender phone number (`from`) once the user adopts a
-username. The `conversationRef` helper above distinguishes a phone number from a
-BSUID, preferring the BSUID when the phone number is absent, so the outbound
-request uses the matching `to` or `recipient` field. Group identity uses the
-provider's `group_id`.
+username. The `conversationRef` helper always uses the BSUID for stable inbound
+individual identity, so the outbound request uses the matching `recipient`
+field. Phone-number destinations remain supported for explicitly constructed
+outbound references. Group identity uses the provider's `group_id`.
 
 The SDK's current high-level text helper models `to` but not the documented
 BSUID `recipient` field. Keep the full exported SDK client and use its

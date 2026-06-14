@@ -27,7 +27,7 @@ interface WhatsAppChannelOptions<E extends Env = Env> {
 }
 ```
 
-| Field         | Description                                                      |
+| Field         | Description                                                     |
 | ------------- | --------------------------------------------------------------- |
 | `appSecret`   | Meta app secret for exact-body HMAC-SHA256 verification.        |
 | `verifyToken` | User-chosen token for GET challenge verification.               |
@@ -90,10 +90,10 @@ batch multiple entries, changes, messages, and statuses; walk
 `payload.entry[].changes[]` in the order Meta sent them, narrowing on
 `change.field`, then on `message.type` or `status`.
 
-The native message types are re-exported from
+The channel re-exports provider-shaped webhook types from the third-party,
+community-maintained
 [`@whatsapp-cloudapi/types`](https://www.npmjs.com/package/@whatsapp-cloudapi/types)
-(MIT, types-only) so applications can import the wire shapes alongside the
-channel:
+package:
 
 ```ts
 import type {
@@ -115,11 +115,12 @@ import type {
 
 Within a `messages` change, `change.value.messages[].type` discriminates text,
 image, audio, video, document, sticker, location, contacts, interactive
-replies, legacy buttons, reactions, order, system, and unsupported messages,
-plus any future type Meta adds (still forwarded at runtime). The
-`change.value.statuses[].status` discriminant preserves `sent`, `delivered`,
-`read`, `played`, and `failed`. Do not dispatch or persist raw payloads
-wholesale.
+replies, legacy buttons, reactions, order, system, and unsupported messages.
+Authenticated future event and message shapes are still forwarded at runtime,
+but TypeScript consumers may need a cast or application type guard until the
+type package models them. The `change.value.statuses[].status` discriminant
+preserves `sent`, `delivered`, `read`, `played`, and `failed`. Do not dispatch
+or persist raw payloads wholesale.
 
 ## Identity
 
@@ -149,10 +150,9 @@ type WhatsAppConversationRef =
 
 Individual destinations distinguish phone numbers from Meta Business-Scoped
 User IDs so equal strings in different identity namespaces cannot collide.
-Applications derive a ref from a native inbound message: prefer the BSUID
-(`message.from_user_id`) when Meta omits the phone number (`message.from`), and
-fall back to the phone destination otherwise. Groups remain keyed by provider
-`group_id`.
+For stable inbound individual identity, derive the destination from the BSUID
+(`message.from_user_id`) even when `message.from` is also present. Groups remain
+keyed by provider `group_id`.
 
 `conversationKey(ref)` serializes a canonical namespaced identifier suitable for
 a Flue agent-instance id; it is not an authorization capability.

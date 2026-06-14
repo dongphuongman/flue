@@ -20,9 +20,9 @@ import { createWhatsAppVerificationHandler, createWhatsAppWebhookHandler } from 
 export { InvalidWhatsAppConversationKeyError, InvalidWhatsAppInputError } from './errors.ts';
 
 /**
- * Provider-native WhatsApp Cloud API webhook payload, re-exported from
- * `@whatsapp-cloudapi/types`. Field names, nesting, and discriminants match
- * Meta's documented wire shape; deliveries are forwarded unmodified.
+ * Provider-shaped WhatsApp Cloud API webhook payload types, re-exported from
+ * the community-maintained `@whatsapp-cloudapi/types` package. Field names,
+ * nesting, and discriminants match Meta's documented wire shape.
  */
 export type {
 	WebhookChange,

@@ -12,9 +12,10 @@ flue add whatsapp --print | codex
 ```
 
 It installs `@flue/whatsapp` for verified ingress and
-`@kapso/whatsapp-cloud-api` for project-owned Graph API access. The client is
-Fetch-based and runs in Node and workerd with Flue's required `nodejs_compat`
-configuration.
+`@kapso/whatsapp-cloud-api` for project-owned Graph API access. `@flue/whatsapp`
+requires Node 24 because its selected webhook type package declares that engine
+floor. The client is Fetch-based and runs in Node and workerd with Flue's
+required `nodejs_compat` configuration.
 
 Set the callback URL to:
 
@@ -69,8 +70,7 @@ export const channel = createWhatsAppChannel({
   },
 });
 
-// Derive the bound destination from a native inbound message. Meta may omit the
-// phone number once a user adopts a username; prefer the business-scoped user id.
+// Derive stable individual identity from the business-scoped user id.
 function conversationRef(
   businessAccountId: string,
   value: WebhookValue,
@@ -80,19 +80,11 @@ function conversationRef(
   if (message.group_id) {
     return { type: 'group', businessAccountId, phoneNumberId, groupId: message.group_id };
   }
-  if (!message.from) {
-    return {
-      type: 'individual',
-      businessAccountId,
-      phoneNumberId,
-      destination: { type: 'user-id', userId: message.from_user_id },
-    };
-  }
   return {
     type: 'individual',
     businessAccountId,
     phoneNumberId,
-    destination: { type: 'phone-number', phoneNumber: message.from },
+    destination: { type: 'user-id', userId: message.from_user_id },
   };
 }
 
@@ -169,15 +161,17 @@ Graph API versions explicit and test an upgrade before changing them.
 
 One POST can contain many entries, changes, messages, and statuses. The callback
 runs once with the complete verified delivery; `payload` is Meta's
-provider-native webhook object, forwarded unmodified and typed by
-`@whatsapp-cloudapi/types`. Walk `payload.entry[].changes[]` in the order Meta
-sent them, narrow on `change.field`, then on `message.type` or `status`, and
-process every applicable item before returning.
+provider-native webhook object, forwarded unmodified and typed by the
+third-party, community-maintained `@whatsapp-cloudapi/types` package. Walk
+`payload.entry[].changes[]` in the order Meta sent them, narrow on
+`change.field`, then on `message.type` or `status`, and process every applicable
+item before returning.
 
 The `message.type` discriminant covers text, image, audio, video, document,
 sticker, location, contacts, interactive button/list/flow replies, legacy
-buttons, reactions, order, system, and unsupported messages, plus any future
-type Meta adds (still forwarded at runtime). The `status` discriminant preserves
+buttons, reactions, order, system, and unsupported messages. Authenticated future
+shapes still forward at runtime, but may require an application cast or type
+guard until the type package models them. The `status` discriminant preserves
 `sent`, `delivered`, `read`, `played`, and `failed`.
 
 Returning nothing produces an empty `200`. A JSON-compatible value becomes the
@@ -193,12 +187,10 @@ before dispatch when duplicate admission is unacceptable.
 
 ## Conversation identity
 
-Meta now supplies a Business-Scoped User ID (`from_user_id`) in incoming message
-webhooks and may omit the sender phone number (`from`) once a user adopts a
-username. Individual conversation destinations therefore distinguish
-`phone-number` from `user-id`. The `conversationRef` helper above derives a ref
-from a native message, preferring the BSUID when the phone number is absent, so
-the outbound request uses the matching `to` or `recipient` field. Group
+Meta supplies a Business-Scoped User ID (`from_user_id`) in incoming message
+webhooks and may omit or change the sender phone number (`from`) as account
+features evolve. The `conversationRef` helper above always uses `from_user_id`
+for stable inbound individual identity, even when `from` is present. Group
 destinations use the provider `group_id`.
 
 The current SDK release exposes broad Graph API helpers but its high-level text

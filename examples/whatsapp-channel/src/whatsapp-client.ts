@@ -1,5 +1,26 @@
-import type { WhatsAppConversationRef } from '@flue/whatsapp';
+import type {
+	WebhookMessage,
+	WebhookValue,
+	WhatsAppConversationRef,
+} from '@flue/whatsapp';
 import type { SendMessageResponse, WhatsAppClient } from '@kapso/whatsapp-cloud-api';
+
+export function inboundConversationRef(
+	businessAccountId: string,
+	value: WebhookValue,
+	message: WebhookMessage,
+): WhatsAppConversationRef {
+	const phoneNumberId = value.metadata.phone_number_id;
+	if (message.group_id) {
+		return { type: 'group', businessAccountId, phoneNumberId, groupId: message.group_id };
+	}
+	return {
+		type: 'individual',
+		businessAccountId,
+		phoneNumberId,
+		destination: { type: 'user-id', userId: message.from_user_id },
+	};
+}
 
 export function sendTextMessage(
 	client: WhatsAppClient,
