@@ -2,8 +2,21 @@
 
 ## Unreleased
 
+### Breaking Changes
+
+- **Workflows are now definitions built around Actions.** Workflow modules must default-export `defineWorkflow({ agent, action })` or `defineWorkflow({ agent, input?, output?, run })`. Every workflow requires an agent definition. The runner now owns root harness initialization, so the legacy named `run(ctx)` export, public `ctx.init()`, named workflow harness options, and workflow payload passed to agent initializers are removed. Move `ctx.payload` to a declared Action `input`, bind the agent on the workflow and use the supplied `harness`, and move environment- or resource-dependent policy to the agent initializer. Action context does not expose `ctx.id`, `ctx.env`, or `ctx.req`; validate transport data before admission and pass required values explicitly as input.
+- **Agent and workflow declaration APIs use consistent `define*` naming.** `createAgent()` is renamed to `defineAgent()` and its returned type is now `AgentDefinition`; `createAgent()` remains as a deprecated compatibility alias. `createWorkflow()` is renamed to `defineWorkflow()` and its returned type is now `WorkflowDefinition`, with no compatibility alias. `CreatedAgent` and `CreatedWorkflow` are removed.
+- **Workflow invocation data is consistently named `input`.** Replace SDK `{ payload }` with `{ input }`, `flue run --payload` with `flue run --input`, `RunRecord.payload` with `RunRecord.input`, `CreateRunInput.payload` with `CreateRunInput.input` in custom `RunStore` implementations, and `run_start.payload` with `run_start.input`. HTTP request bodies remain unwrapped JSON. Built-in persistence adapters continue reading existing physical `payload` columns and keys, and legacy persisted `run_start.payload` events are normalized when read.
+
+### New Features
+
+- Actions now serve as reusable finite orchestration for both workflows and model tools, with invocation-scoped harnesses, strict JSON output serialization, and one execution path for schema validation and transformed values.
+- Agent definitions can expose Actions through `actions`. Model-invoked Actions run as framework-owned tools in isolated child scopes while sharing the parent policy, sandbox, filesystem, and environment. Action sessions are retained with their parent, recursively deleted, cancellation-aware, and governed by the same mixed Action/Task delegation-depth limit.
+- Added top-level `invoke(workflow, { input })` for admitting discovered workflow definitions programmatically. It returns `{ runId }` after real run and event-stream admission, does not wait for completion, bypasses route middleware, supports route-free workflows, and preserves Node and Cloudflare's existing execution topology.
+
 ### Fixes & Other Changes
 
+- Workflow execution now validates input before initializing the agent or sandbox, waits for active operations to settle before terminal run persistence, and compensates failed stream or scheduler admission so runs are not left active indefinitely.
 - Fixed Cloudflare sandbox shell calls failing before execution because an `AbortSignal` was sent across the Durable Object RPC boundary.
 
 ## 1.0.0-beta.2 - 2026-06-17
