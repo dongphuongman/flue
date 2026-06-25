@@ -1,5 +1,13 @@
 # Changelog
 
+## @flue/runtime, @flue/cli, @flue/sdk, and @flue/react 1.0.0-beta.6 - 2026-06-25
+
+### Fixes & Other Changes
+
+- Packaged Agent Skill resources now remain available when a sandbox adapter does not provide a filesystem `read` tool.
+- Interrupted stream recovery now persists compact, linearly growing segments, omits streamed tool-call arguments, and rejects segments larger than the persistence-safe 1.9 MB limit.
+- `@flue/react` now accepts compatible `@flue/sdk` prereleases instead of requiring one exact prerelease.
+
 ## @flue/runtime, @flue/cli, and @flue/sdk 1.0.0-beta.5 - 2026-06-23
 
 ### Fixes & Other Changes
