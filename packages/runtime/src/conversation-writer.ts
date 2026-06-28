@@ -310,6 +310,7 @@ export class ConversationRecordWriter {
 							kind: 'task' as const,
 							parentConversationId: input.parent.conversationId,
 							taskId: input.child.taskId,
+							...(input.child.agent ? { agent: input.child.agent } : {}),
 					  }
 					: {
 							kind: 'action' as const,

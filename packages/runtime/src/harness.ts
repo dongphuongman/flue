@@ -251,6 +251,7 @@ export class Harness implements FlueHarness {
 				createdAt: identity.createdAt,
 				parentConversationId: options.parentConversationId,
 				taskId: options.taskId,
+				...(taskAgent?.name ? { agent: taskAgent.name } : {}),
 			},
 			ref: {
 				conversationId: identity.conversationId,
@@ -258,6 +259,10 @@ export class Harness implements FlueHarness {
 				session: sessionName,
 				type: 'task',
 				taskId: options.taskId,
+				...(options.parentToolCallId ? { parentToolCallId: options.parentToolCallId } : {}),
+				...(options.parentAssistantEntryId
+					? { parentAssistantEntryId: options.parentAssistantEntryId }
+					: {}),
 			},
 		});
 		const eventCallback: FlueEventInputCallback | undefined = this.eventCallback

@@ -120,18 +120,21 @@ export type ReducedConversationState = ReducedConversationStateBase &
 				parentConversationId?: never;
 				taskId?: never;
 				actionInvocationId?: never;
+				agent?: never;
 		  }
 		| {
 				kind: 'task';
 				parentConversationId: string;
 				taskId: string;
 				actionInvocationId?: never;
+				agent?: string;
 		  }
 		| {
 				kind: 'action';
 				parentConversationId: string;
 				actionInvocationId: string;
 				taskId?: never;
+				agent?: never;
 		  }
 	);
 
@@ -540,7 +543,12 @@ function validateConversationCreation(
 ): void {
 	const value = record as ConversationRecord & Record<string, unknown>;
 	if (value.kind === 'root') {
-		if (value.parentConversationId !== undefined || value.taskId !== undefined || value.actionInvocationId !== undefined) {
+		if (
+			value.parentConversationId !== undefined ||
+			value.taskId !== undefined ||
+			value.actionInvocationId !== undefined ||
+			value.agent !== undefined
+		) {
 			fail(record, `Root conversation creation contains child identity fields.`);
 		}
 		return;
@@ -550,7 +558,8 @@ function validateConversationCreation(
 			typeof value.parentConversationId !== 'string' ||
 			typeof value.taskId !== 'string' ||
 			value.actionInvocationId !== undefined ||
-			!isUuid(value.taskId)
+			!isUuid(value.taskId) ||
+			(value.agent !== undefined && typeof value.agent !== 'string')
 		) {
 			fail(record, `Task conversation creation has invalid discriminated identity.`);
 		}
@@ -566,6 +575,7 @@ function validateConversationCreation(
 		typeof value.parentConversationId !== 'string' ||
 		typeof value.actionInvocationId !== 'string' ||
 		value.taskId !== undefined ||
+		value.agent !== undefined ||
 		!isUuid(value.actionInvocationId)
 	) {
 		fail(record, `Action conversation creation has invalid discriminated identity.`);
@@ -585,7 +595,13 @@ function validateChildReference(
 ): void {
 	const child = record.child as CanonicalChildSessionRef & Record<string, unknown>;
 	if (child.type === 'task') {
-		if (typeof child.taskId !== 'string' || child.invocationId !== undefined || !isUuid(child.taskId)) {
+		if (
+			typeof child.taskId !== 'string' ||
+			child.invocationId !== undefined ||
+			!isUuid(child.taskId) ||
+			(child.parentToolCallId !== undefined && typeof child.parentToolCallId !== 'string') ||
+			(child.parentAssistantEntryId !== undefined && typeof child.parentAssistantEntryId !== 'string')
+		) {
 			fail(record, `Task child reference has invalid discriminated identity.`);
 		}
 		return;
@@ -594,6 +610,8 @@ function validateChildReference(
 		child.type !== 'action' ||
 		typeof child.invocationId !== 'string' ||
 		child.taskId !== undefined ||
+		child.parentToolCallId !== undefined ||
+		child.parentAssistantEntryId !== undefined ||
 		!isUuid(child.invocationId)
 	) {
 		fail(record, `Action child reference has invalid discriminated identity.`);

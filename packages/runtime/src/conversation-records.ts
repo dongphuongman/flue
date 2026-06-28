@@ -50,18 +50,26 @@ export type ConversationCreatedRecord = ConversationCreatedRecordBase &
 				parentConversationId?: never;
 				taskId?: never;
 				actionInvocationId?: never;
+				agent?: never;
 		  }
 		| {
 				kind: 'task';
 				parentConversationId: string;
 				taskId: string;
 				actionInvocationId?: never;
+				/**
+				 * Subagent profile name this task ran, when a profile was selected.
+				 * Absent for agent-less tasks. Presentation metadata for the task
+				 * tree — never part of conversation identity.
+				 */
+				agent?: string;
 		  }
 		| {
 				kind: 'action';
 				parentConversationId: string;
 				actionInvocationId: string;
 				taskId?: never;
+				agent?: never;
 		  }
 	);
 
@@ -210,11 +218,22 @@ export type CanonicalChildSessionRef =
 			type: 'task';
 			taskId: string;
 			invocationId?: never;
+			/**
+			 * The parent `task` tool call that spawned this child, and the assistant
+			 * entry holding it. Present when the task was invoked by the model as a
+			 * tool call; absent for a programmatic `session.task()` (which has no
+			 * parent tool call). Durable join key used by recovery to resolve the
+			 * parent's tool call from the child — never inferred.
+			 */
+			parentToolCallId?: string;
+			parentAssistantEntryId?: string;
 	  })
 	| (CanonicalChildSessionRefBase & {
 			type: 'action';
 			invocationId: string;
 			taskId?: never;
+			parentToolCallId?: never;
+			parentAssistantEntryId?: never;
 	  });
 
 interface ChildSessionRetainedRecord extends ConversationRecordEnvelope {

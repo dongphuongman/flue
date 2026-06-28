@@ -283,6 +283,14 @@ export interface CreateTaskSessionOptions {
 	cwd?: string;
 	agent?: AgentProfile;
 	depth: number;
+	/**
+	 * The parent `task` tool call that spawned this child, and the assistant
+	 * entry holding it. Present only when the task was invoked by the model as a
+	 * tool call; absent for a programmatic `session.task()`. Recorded on the
+	 * child link (`child_session_retained`) as the durable join key for recovery.
+	 */
+	parentToolCallId?: string;
+	parentAssistantEntryId?: string;
 }
 
 export type CreateTaskSession = (options: CreateTaskSessionOptions) => Promise<Session>;
@@ -2046,6 +2054,13 @@ export class Session implements FlueSession, AgentSubmissionSession {
 				cwd: options?.cwd,
 				agent: taskAgent,
 				depth: this.delegationDepth + 1,
+				// Present only on the model-invoked `task` tool path; a programmatic
+				// `session.task()` has no parent tool call (canonicalToolRequestMessageId
+				// is set only while the assistant's tool batch is executing).
+				...(options?.toolCallId ? { parentToolCallId: options.toolCallId } : {}),
+				...(options?.toolCallId && this.canonicalToolRequestMessageId
+					? { parentAssistantEntryId: this.canonicalToolRequestMessageId }
+					: {}),
 			});
 			this.activeTasks.add(child);
 			this.emit({
